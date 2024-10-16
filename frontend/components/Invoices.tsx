@@ -24,10 +24,10 @@ const people = [
   // More people...
 ];
 
-export default function Example() {
+export default function Invoices() {
   return (
     <div>
-      <div className="mb-1 sm:flex sm:items-center">
+      <div className="mb-1 flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-sm  text-gray-900">All invoices</h1>
         </div>
@@ -46,75 +46,70 @@ export default function Example() {
         </button>
       </div>
 
-      <div className="flow-root">
+      <div className=" flow-root">
         <div className="-mx-4  sm:-mx-6 lg:-mx-8">
-          <div className="bg-gray-100 align-middle">
+          <div className="dark:bg-black bg-gray-100 align-middle">
             <table className="min-w-full">
-              <thead className="mx-2 min-w-full">
+              <thead className=" mx-2 min-w-full">
                 <tr>
                   <th
                     scope="col"
-                    className="py-1.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-8"
+                    className="dark:text-white py-1.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-8"
                   >
                     Invoice ID
                   </th>
                   <th
                     scope="col"
-                    className="py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
                   >
                     Start Date
                   </th>
                   <th
                     scope="col"
-                    className="py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
                   >
                     End Date
                   </th>
                   <th
                     scope="col"
-                    className="py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white  py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
                   >
                     Total Shifts
                   </th>
                   <th
                     scope="col"
-                    className="py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
                   >
                     Invoice Amount
                   </th>
                   <th
                     scope="col"
-                    className="py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
                   >
                     Status
                   </th>
-                  <th
-                    scope="col"
-                    className="py-1.5 relative pl-3 pr-4 sm:pr-6 lg:pr-8"
-                  >
-                    <span className="sr-only">Edit</span>
-                  </th>
+                 
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="dark:bg-black divide-y divide-gray-200 bg-white">
                 {people.map((person) => (
                   <tr key={person.email}>
-                    <td className="whitespace-nowrap py-1.5 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8">
+                    <td className="dark:text-white whitespace-nowrap py-1.5 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8">
                       {person.name}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
                       {person.title}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
                       {person.email}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
                       {person.role}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
                       $40
                     </td>
-                    <td className="whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
                       <span
                         className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
                           person.status.toLowerCase() === "unpaid"
@@ -125,7 +120,7 @@ export default function Example() {
                         {person.status}
                       </span>
                     </td>
-                    <td className="flex items-center relative whitespace-nowrap py-1.5 pr-4 text-right text-sm font-medium sm:pr-6 lg:pr-8">
+                    <td className="flex items-center relative whitespace-nowrap py-1.5 pr-4 text-right text-sm font-medium ">
                       <a
                         className={
                           person.status.toLowerCase() === "paid"
