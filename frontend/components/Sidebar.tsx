@@ -18,14 +18,12 @@ import {
   ReceiptText,
   FileSpreadsheet,
   UserCog,
-  BriefcaseBusiness
+  BriefcaseBusiness,
+  PanelLeft,
+  Bell,
 } from "lucide-react";
 
-import {
-  Bars3Icon,
-  BellIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
@@ -38,12 +36,18 @@ const navigation = [
   { name: "Calendar", href: "#", icon: CalendarDays, current: false },
   { name: "Workers", href: "#", icon: Users, current: false },
   { name: "Timesheet", href: "#", icon: FileSpreadsheet, current: false },
-  { name: "Invoices", href: "#", icon: ReceiptText, submenu: [
-    { name: 'Draft', href: '#draft' },
-    { name: 'Outstanding', href: '#outstanding' },
-    { name: 'Past due', href: '#past-due' },
-    { name: 'Paid', href: '#paid' }
-  ], current: false },
+  {
+    name: "Invoices",
+    href: "#",
+    icon: ReceiptText,
+    submenu: [
+      { name: "Draft", href: "#draft" },
+      { name: "Outstanding", href: "#outstanding" },
+      { name: "Past due", href: "#past-due" },
+      { name: "Paid", href: "#paid" },
+    ],
+    current: false,
+  },
   { name: "Post shift", href: "#", icon: BriefcaseBusiness, current: false },
 ];
 
@@ -70,7 +74,7 @@ export default function Example() {
         <body class="h-full">
         ```
       */}
-      <div>
+      <div className="inline-block min-w-full ">
         <Dialog
           open={sidebarOpen}
           onClose={setSidebarOpen}
@@ -102,7 +106,7 @@ export default function Example() {
                 </div>
               </TransitionChild>
               {/* Sidebar component, swap this element with another sidebar if you like */}
-              <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+              <div className="flex grow flex-col gap-y-1 overflow-y-auto bg-white px-6 pb-5">
                 <div className="flex h-16 shrink-0 items-center">
                   <img
                     alt="Your Company"
@@ -113,29 +117,45 @@ export default function Example() {
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col gap-y-7">
                     <li>
-                      <ul role="list" className="-mx-2 space-y-1">
+                      <ul role="list" className=" -mx-2 space-y-1">
                         {navigation.map((item) => (
                           <li key={item.name}>
                             <a
                               href={item.href}
                               className={classNames(
                                 item.current
-                                  ? "bg-gray-50 text-indigo-600"
-                                  : " text-gray-700 hover:bg-gray-50 hover:text-indigo-600",
-                                "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
+                                  ? "text-black bg-gray-100"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-black",
+                                "group flex gap-x-3 rounded-md text-sm leading-6"
                               )}
                             >
                               <item.icon
                                 aria-hidden="true"
                                 className={classNames(
                                   item.current
-                                    ? "text-indigo-600"
-                                    : "text-gray-400 group-hover:text-indigo-600",
-                                  "h-6 w-6 shrink-0"
+                                    ? "text-gray-600 group-hover:text-black"
+                                    : "text-gray-600 group-hover:text-black",
+                                  "h-6 w-6 shrink-0 p-1"
                                 )}
                               />
-                              {item.name}
+                              <span className="group-hover:text-black">
+                                {item.name}
+                              </span>
                             </a>
+                            {item.submenu && (
+                              <ul className="my-1 ml-3 ">
+                                {item.submenu.map((subitem) => (
+                                  <li key={subitem.name} className="border-l">
+                                    <a
+                                      href={subitem.href}
+                                      className="font-thin text-xs hover:rounded-md hover:bg-gray-50  ml-1 pl-3 py-1 border-gray-200 text-black block"
+                                    >
+                                      {subitem.name}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -143,11 +163,11 @@ export default function Example() {
                     <li className="border-t">
                       <a
                         href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
+                        className="group flex gap-x-3 rounded-md text-sm leading-6 text-gray-700 hover:bg-gray-50"
                       >
                         <UserCog
                           aria-hidden="true"
-                          className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"
+                          className="h-6 w-6 shrink-0 p-1 text-black "
                         />
                         Settings
                       </a>
@@ -175,30 +195,43 @@ export default function Example() {
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
                     {navigation.map((item) => (
-                      <li key={item.name} className="">
+                      <li key={item.name}>
                         <a
                           href={item.href}
-                          className="text-gray-700 hover:bg-gray-50 group flex gap-x-3 rounded-md text-sm  leading-6"
+                          className={classNames(
+                            item.current
+                              ? "text-black bg-gray-100"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-black",
+                            "group flex gap-x-3 rounded-md text-sm leading-6"
+                          )}
                         >
                           <item.icon
                             aria-hidden="true"
-                            className="hover:text-black text-gray-400  h-6 w-6 shrink-0 p-1 "
+                            className={classNames(
+                              item.current
+                                ? "text-gray-600 group-hover:text-black"
+                                : "text-gray-600 group-hover:text-black",
+                              "h-6 w-6 shrink-0 p-1"
+                            )}
                           />
-                          {item.name}
+                          <span className="group-hover:text-black">
+                            {item.name}
+                          </span>
                         </a>
                         {item.submenu && (
-                        <ul className="my-1 ml-5 ">
-                        {item.submenu.map((subitem) => (
-                            <li key={subitem.name} className="border-l">
-                            <a
-                                href={subitem.href}
-                                className="font-thin text-xs hover:rounded-md hover:bg-gray-100  ml-1 pl-3 py-1 border-gray-200 text-black block">
-                                {subitem.name}
-                            </a>
-                            </li>
-                        ))}
-                        </ul>
-                    )}
+                          <ul className="my-1 ml-3 ">
+                            {item.submenu.map((subitem) => (
+                              <li key={subitem.name} className="border-l">
+                                <a
+                                  href={subitem.href}
+                                  className="font-thin text-xs hover:rounded-md hover:bg-gray-50  ml-1 pl-3 py-1 border-gray-200 text-black block"
+                                >
+                                  {subitem.name}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -206,11 +239,11 @@ export default function Example() {
                 <li className="border-t">
                   <a
                     href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm leading-6 text-gray-700 hover:bg-gray-50 "
                   >
                     <UserCog
                       aria-hidden="true"
-                      className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"
+                      className="h-6 w-6 shrink-0 text-sm text-black p-1"
                     />
                     Settings
                   </a>
@@ -221,14 +254,14 @@ export default function Example() {
         </div>
 
         <div className="lg:pl-52">
-          <div className="sticky top-0 z-40 flex h-10 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+          <div className="sticky top-0 z-40 flex h-10 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white shadow-sm sm:gap-x-6 pl-6">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+              className="-m-2.5  text-gray-700 lg:hidden"
             >
               <span className="sr-only">Open sidebar</span>
-              <Bars3Icon aria-hidden="true" className="h-6 w-6" />
+              <PanelLeft aria-hidden="true" className=" p-1" />
             </button>
 
             {/* Separator */}
@@ -237,7 +270,7 @@ export default function Example() {
               className="h-6 w-px bg-gray-200 lg:hidden"
             />
 
-            <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+            <div className="flex flex-1  self-stretch">
               <form action="#" method="GET" className="relative flex flex-1">
                 <label htmlFor="search-field" className="sr-only">
                   Search
@@ -254,60 +287,21 @@ export default function Example() {
                   className="block h-full w-full border-0 py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
                 />
               </form>
-              <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <button
-                  type="button"
-                  className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-                >
-                  <span className="sr-only">View notifications</span>
-                  <BellIcon aria-hidden="true" className="h-6 w-6" />
-                </button>
-
+              <div className="flex items-center p-2">
                 {/* Separator */}
                 <div
                   aria-hidden="true"
                   className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
                 />
+                <button
+                  type="button"
+                  className="ml-2 text-gray-700 hover:text-gray-500"
+                >
+                  <span className="sr-only">View notifications</span>
+                  <Bell aria-hidden="true" className=" h-4 w-4" />
+                </button>
                 <ThemeSwitcher />
-                {/* Profile dropdown */}
-                <Menu as="div" className="relative">
-                  <MenuButton className="-m-1.5 flex items-center p-1.5">
-                    <span className="sr-only">Open user menu</span>
-                    {/* <img
-                      alt=""
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                      className="h-8 w-8 rounded-full bg-gray-50"
-                    /> */}
-
-                    <span className="hidden lg:flex lg:items-center">
-                      <span
-                        aria-hidden="true"
-                        className="ml-4 text-sm font-semibold leading-6 text-gray-900"
-                      >
-                        Tom Cook
-                      </span>
-                      <ChevronDownIcon
-                        aria-hidden="true"
-                        className="ml-2 h-5 w-5 text-gray-400"
-                      />
-                    </span>
-                  </MenuButton>
-                  <MenuItems
-                    transition
-                    className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
-                  >
-                    {userNavigation.map((item) => (
-                      <MenuItem key={item.name}>
-                        <a
-                          href={item.href}
-                          className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
-                        >
-                          {item.name}
-                        </a>
-                      </MenuItem>
-                    ))}
-                  </MenuItems>
-                </Menu>
+                {/* Profile dropdown  removed */} 
               </div>
             </div>
           </div>
@@ -322,3 +316,5 @@ export default function Example() {
     </>
   );
 }
+
+// todo think about how to reduce code duplication
