@@ -25,10 +25,10 @@ const ThemeSwitcher = () => {
   };
 
   return (
-    <div className="transition-colors duration-700">
+    <div>
       <button
         onClick={toggleTheme}
-        className="p-2 rounded-full transition-colors duration-700"
+        className="p-2 rounded-full"
         aria-label="Toggle theme"
       >
         {currentTheme === 'dark' ? (
