@@ -5,6 +5,7 @@ import { Sun, Moon } from 'lucide-react';
 const ThemeSwitcher = () => {
   const { theme, setTheme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  
 
   useEffect(() => {
     setMounted(true);
@@ -17,6 +18,8 @@ const ThemeSwitcher = () => {
   const currentTheme = theme === 'system' ? systemTheme : theme;
 
   const toggleTheme = () => {
+    console.log("hello")
+    console.log(currentTheme)
     if (currentTheme === 'dark') {
       setTheme('light');
     } else {

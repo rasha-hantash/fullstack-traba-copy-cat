@@ -9,15 +9,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      backgroundColor: {
+      colors: {
         background: "var(--background)",
-      },
-      textColor: {
         foreground: "var(--foreground)",
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+    // require('@tailwindcss/typography'), // don't know if i need this 
+  ],
 };
-
 export default config;
