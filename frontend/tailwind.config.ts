@@ -8,16 +8,16 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {
-      backgroundColor: {
-        background: "var(--background)",
-      },
-      textColor: {
-        foreground: "var(--foreground)",
-      },
-    },
+    // extend: {
+    //   colors: {
+    //     background: "var(--background)",
+    //     foreground: "var(--foreground)",
+    //   },
+    // },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+    // require('@tailwindcss/typography'), // don't know if i need this 
+  ],
 };
-
 export default config;
