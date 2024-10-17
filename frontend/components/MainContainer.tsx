@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher";
 import Sidebar from "./Sidebar";
+import Invoices from "./Invoices";
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -23,7 +24,7 @@ export default function MainContainer() {
   };
 
   return (
-    <div className="h-screen flex-auto border lg:rounded-md lg:m-2 ">
+    <div className="flex-auto border lg:rounded-md lg:m-2 ">
       {/* todo: create a search bar component */}
       {/* do i neet method.GET ?  */}
             {/* Sidebar */}
@@ -92,8 +93,11 @@ export default function MainContainer() {
             <SquarePen className="py-1" />
             <span className="pr-1">Create invoice</span>
           </button>
+          
         </div>
+        
       </div>
+      <Invoices/>
     </div>
   );
 }

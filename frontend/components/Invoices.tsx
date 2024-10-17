@@ -27,27 +27,7 @@ const people = [
 export default function Invoices() {
   return (
     <div>
-      <div className="mb-1 flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-sm  text-gray-900">All invoices</h1>
-        </div>
 
-        <button className="flex items-center text-xs ml-1">
-          {" "}
-          <ListFilter className="py-1" /> Filter
-        </button>
-        <button className="flex items-center text-xs  ml-4">
-          <ArrowUpRight className="py-1" />
-          Export
-        </button>
-        <button className="shadow-sm border flex hover:bg-gray-100  rounded-md items-center pr-1 text-xs  ml-4">
-          <SquarePen className="py-1" />
-          Create invoice
-        </button>
-      </div>
-
-      <div className=" flow-root">
-        <div className="-mx-4  sm:-mx-6 lg:-mx-8">
           <div className="dark:bg-black bg-gray-100 align-middle">
             <table className="min-w-full">
               <thead className=" mx-2 min-w-full">
@@ -169,7 +149,5 @@ export default function Invoices() {
             <div className="min-w-full border-b border-gray-200"></div>
           </div>
         </div>
-      </div>
-    </div>
   );
 }
