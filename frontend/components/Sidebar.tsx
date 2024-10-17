@@ -58,8 +58,6 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar() {
     // const [sidebarOpen, setSidebarOpen] = useState(false);
-
-
     return (
         <div className="hidden lg:block w-60 h-screen dark:bg-black">
             <nav>

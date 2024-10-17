@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import {
   Search,
   ListFilter,
@@ -8,15 +9,39 @@ import {
   PanelLeft,
 } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher";
+import Sidebar from "./Sidebar";
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
 export default function MainContainer() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    console.log(isSidebarOpen);
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
-    <div className="flex-auto border lg:rounded-md lg:m-2 ">
+    <div className="h-screen flex-auto border lg:rounded-md lg:m-2 ">
       {/* todo: create a search bar component */}
       {/* do i neet method.GET ?  */}
+            {/* Sidebar */}
+            <div
+        className={`z-50 fixed top-0 right-0 h-full w-64 bg-gray-200 p-4 transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <h2 className="text-xl font-semibold mb-4">Sidebar</h2>
+        <p>This is the sidebar content.</p>
+        <button
+          onClick={toggleSidebar}
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+        >
+          Close Sidebar
+        </button>
+      </div>
+
       <div className="flex border-b items-center">
         <div className="ml-2 flex-auto w-full">
           <form
@@ -24,7 +49,7 @@ export default function MainContainer() {
             method="GET"
             className="h-10 relative flex flex-1 items-center"
           >
-            <PanelLeft className="lg:hidden ml-2 h-4 w-4 text-gray-600" />
+            <PanelLeft  onClick={toggleSidebar} className="lg:hidden ml-2 h-4 w-4 text-gray-600" />
 
             <label htmlFor="search-field" className="sr-only">
               Search
