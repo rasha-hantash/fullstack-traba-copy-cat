@@ -1,16 +1,4 @@
 "use client";
-import { useState } from "react";
-import {
-  Dialog,
-  DialogBackdrop,
-  DialogPanel,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-  TransitionChild,
-} from "@headlessui/react";
-
 import {
   CalendarDays,
   Users,
@@ -19,17 +7,7 @@ import {
   FileSpreadsheet,
   UserCog,
   BriefcaseBusiness,
-  PanelLeft,
-  Bell,
 } from "lucide-react";
-
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import {
-  ChevronDownIcon,
-  MagnifyingGlassIcon,
-} from "@heroicons/react/20/solid";
-import ThemeSwitcher from "./ThemeSwitcher";
-import Invoices from "./Invoices";
 
 const navigation = [
   { name: "Dashboard", href: "#", icon: LayoutGrid, current: true },
@@ -57,7 +35,6 @@ function classNames(...classes: string[]) {
 }
 
 export default function Sidebar() {
-    // const [sidebarOpen, setSidebarOpen] = useState(false);
     return (
         <div className="hidden lg:block w-60 h-screen dark:bg-black">
             <nav>
@@ -68,9 +45,9 @@ export default function Sidebar() {
                 className="h-8 w-auto"
               />
             </div>
-            <ul role="list" className="mt-1 px-4">
+            <ul role="list" className="mt-2 px-4">
                 <li>
-                  <ul role="list" className="">
+                  <ul role="list">
                     {navigation.map((item) => (
                       <li key={item.name}>
                         <a
@@ -79,7 +56,7 @@ export default function Sidebar() {
                             item.current
                               ? "text-black bg-gray-100"
                               : "text-gray-600 hover:bg-gray-50 hover:text-black",
-                            "group flex gap-x-3 rounded-md text-sm leading-6"
+                            "group flex gap-x-1 rounded-md text-sm leading-6"
                           )}
                         >
                           <item.icon
