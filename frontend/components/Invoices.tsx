@@ -46,13 +46,13 @@ export default function Invoices() {
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500"
+                    className=" dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500"
                   >
                     End Date
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white  py-1.5 px-3  text-left text-sm font-semibold text-gray-500"
+                    className="items-center dark:text-white  py-1.5 px-3  text-left text-sm font-semibold text-gray-500"
                   >
                     Total Shifts
                   </th>

@@ -36,7 +36,7 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar() {
     return (
-        <div className="hidden lg:block w-60 h-screen dark:bg-black">
+        <>
             <nav>
             <div className="px-4 h-8 pt-1">
               <img
@@ -106,7 +106,7 @@ export default function Sidebar() {
                 </li>
               </ul>
             </nav>
-        </div>
+        </>
     )
 
 
