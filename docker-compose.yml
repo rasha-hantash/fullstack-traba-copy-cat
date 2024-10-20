@@ -3,13 +3,9 @@ services:
     image: postgres:14.6
     restart: always #todo look into what the restart option does
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=your_password
       - POSTGRES_DB=traba
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
     ports:
       - '5438:5432'
     volumes:

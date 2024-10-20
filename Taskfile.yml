@@ -8,11 +8,11 @@ tasks:
 
     local:migrate:up:
         cmds:
-          - migrate -path platform/sql/migrations/ -database "postgresql://postgres:postgres@localhost:5438/?sslmode=disable" -verbose up
+          - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose up
 
     local:migrate:down:
         cmds:
-          - migrate -path platform/sql/migrations/ -database "postgresql://postgres:postgres@localhost:5438/?sslmode=disable" -verbose down
+          - migrate -path platform/sql/migrations/ -database "postgresql://traba:password@localhost:5438/traba?sslmode=disable" -verbose down
 
     remote:migrate:up:
       vars:
@@ -26,18 +26,8 @@ tasks:
       cmds:
         - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose down
 
-    wait:
-      desc: Wait for the database to be ready
+    local:seed:db:
+      desc: Seed the database with a local SQL file
       cmds:
         - |
-          echo "Waiting for database to be ready..."
-          until docker-compose exec postgres pg_isready -h localhost -p 5432 -U user; do
-            sleep 1
-          done
-          echo "Database is ready!"
-
-    seed:
-      desc: Seed the database
-      deps: [wait]
-      cmds:
-        - docker exec -e PGPASSWORD=password postgres psql -U user -d traba -f /sql/seed/seed-db.sql
+          cat platform/sql/seed/seed-db.sql | docker exec -i -e PGPASSWORD=your_password fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba

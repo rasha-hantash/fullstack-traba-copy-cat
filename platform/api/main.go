@@ -21,13 +21,6 @@ import (
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
-// UserMetadata represents the structure of our public metadata
-type UserMetadata struct {
-	Role        string   `json:"role"`
-	Permissions []string `json:"permissions"`
-	Team        string   `json:"team"`
-}
-
 
 type DatabaseConfig struct {
 	// todo update the connection string to be localhost, postgres, or whatever the host name is supposed to be 
@@ -42,7 +35,6 @@ type DatabaseConfig struct {
 type Config struct {
 	ServerPort         string `env:"PORT" envDefault:"8000"`
 	Database           DatabaseConfig
-	ClerkSecretKey     string `env:"CLERK_SECRET_KEY"`
 	Mode               string `env:"MODE" envDefault:"local"`
 }
 
@@ -73,9 +65,13 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// todo middleware handler for protected route 
+	// r.Middlewares().Handler()
+
 	// Public routes
 	// r.Get("/", publicRoute)
 	r.Get("/api/invoices", h.HandleFetchInvoices)
+	r.Post("/api/create-user", h.HandleCreateUser)
 
 	// // Protected routes
 	// r.Group(func(r chi.Router) {

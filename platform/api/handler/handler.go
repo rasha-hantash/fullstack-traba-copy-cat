@@ -17,6 +17,28 @@ func NewHandler(svc service.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
+func (h* Handler) HandleCreateUser (w http.ResponseWriter, r *http.Request) {
+	// Get the user from the context
+	userId := r.Context().Value("user_id").(string)
+	// Get the user from the request
+	var user service.User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		slog.Error("failed to decode user", "error", err)
+		http.Error(w, "failed to decode user", http.StatusBadRequest)
+		return
+	}
+	// Create the user
+	err = h.svc.CreateUser(userId, user)
+	if err != nil {
+		slog.Error("failed to create user", "error", err)
+		http.Error(w, "failed to create user", http.StatusInternalServerError)
+		return
+	}
+	// Return success
+	w.WriteHeader(http.StatusCreated)
+}
+
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
 	userId := r.Context().Value("user_id").(string)
