@@ -14,13 +14,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/clerk/clerk-sdk-go/v2"
-	clerkhttp "github.com/clerk/clerk-sdk-go/v2/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/z3r0-cool/monorepo/platform/api/handler"
-	"github.com/z3r0-cool/monorepo/platform/api/service"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/handler"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
 // UserMetadata represents the structure of our public metadata
@@ -76,14 +74,14 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	// Public routes
-	r.Get("/", publicRoute)
+	// r.Get("/", publicRoute)
+	r.Get("/api/invoices", h.HandleFetchInvoices)
 
-	// Protected routes
-	r.Group(func(r chi.Router) {
-		r.Get("/api/invoices", h.FetchLatestInvoices)
-	})
+	// // Protected routes
+	// r.Group(func(r chi.Router) {
+		
+	// })
 
-	fmt.Println("Weeee")
 	// todo catch the error here
 	http.ListenAndServe(":8000", r)
 

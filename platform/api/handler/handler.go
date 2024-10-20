@@ -3,8 +3,9 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
-	"github.com/z3r0-cool/monorepo/platform/api/service"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
 
@@ -18,12 +19,12 @@ func NewHandler(svc service.Service) *Handler {
 
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
-	user := r.Context().Value("user").(string)
+	userId := r.Context().Value("user_id").(string)
 	// Get the invoices from the service
 
 	searchTerm := r.URL.Query().Get("search")
 
-	invoices, err := svc.FetchInvoices(user)
+	invoices, err := h.svc.FetchInvoices(userId, searchTerm)
 	if err != nil {
 		slog.Error("failed to fetch invoices", "error", err)
 		http.Error(w, "failed to fetch invoices", http.StatusInternalServerError)

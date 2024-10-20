@@ -101,11 +101,11 @@ export default function MainContainer() {
           <h2 className="text-sm  text-gray-900">All invoices</h2>
         </div>
         <div className="flex">
-          <button className="hover:text-black text-gray-700 flex items-center text-xs">
+          <button className="hover:text-black text-gray-600 flex items-center text-xs">
             <ListFilter className="py-1" />
             Filter
           </button>
-          <button className="hover:text-black text-gray-700 mx-1 flex items-center text-xs">
+          <button className="hover:text-black text-gray-600 mx-1 flex items-center text-xs">
             <FileDown className="py-1" />
             Export
           </button>

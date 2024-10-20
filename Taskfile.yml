@@ -1,0 +1,43 @@
+version: '3'
+tasks:
+    migrate:create:
+        vars:
+            NAME: "{{.NAME}}"
+        cmds:
+          - migrate create -ext sql -dir platform/sql/migrations/ -seq {{.NAME}}
+
+    local:migrate:up:
+        cmds:
+          - migrate -path platform/sql/migrations/ -database "postgresql://postgres:postgres@localhost:5438/?sslmode=disable" -verbose up
+
+    local:migrate:down:
+        cmds:
+          - migrate -path platform/sql/migrations/ -database "postgresql://postgres:postgres@localhost:5438/?sslmode=disable" -verbose down
+
+    remote:migrate:up:
+      vars:
+        CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+      cmds:
+        - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose up
+
+    remote:migrate:down:
+      vars:
+        CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+      cmds:
+        - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose down
+
+    wait:
+      desc: Wait for the database to be ready
+      cmds:
+        - |
+          echo "Waiting for database to be ready..."
+          until docker-compose exec postgres pg_isready -h localhost -p 5432 -U user; do
+            sleep 1
+          done
+          echo "Database is ready!"
+
+    seed:
+      desc: Seed the database
+      deps: [wait]
+      cmds:
+        - docker exec -e PGPASSWORD=password postgres psql -U user -d traba -f /sql/seed/seed-db.sql
