@@ -27,64 +27,44 @@ const people = [
 export default function Invoices() {
   return (
     <div>
-      <div className="mb-1 flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-sm  text-gray-900">All invoices</h1>
-        </div>
 
-        <button className="flex items-center text-xs ml-1">
-          {" "}
-          <ListFilter className="py-1" /> Filter
-        </button>
-        <button className="flex items-center text-xs  ml-4">
-          <ArrowUpRight className="py-1" />
-          Export
-        </button>
-        <button className="shadow-sm border flex hover:bg-gray-100  rounded-md items-center pr-1 text-xs  ml-4">
-          <SquarePen className="py-1" />
-          Create invoice
-        </button>
-      </div>
-
-      <div className=" flow-root">
-        <div className="-mx-4  sm:-mx-6 lg:-mx-8">
           <div className="dark:bg-black bg-gray-100 align-middle">
             <table className="min-w-full">
-              <thead className=" mx-2 min-w-full">
+              <thead >
                 <tr>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-8"
+                    className="pl-4 dark:text-white py-1.5  pr-3 text-left text-sm font-semibold text-gray-500"
                   >
                     Invoice ID
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500"
                   >
                     Start Date
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className=" dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500"
                   >
                     End Date
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white  py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
+                    className="items-center dark:text-white  py-1.5 px-3  text-left text-sm font-semibold text-gray-500"
                   >
                     Total Shifts
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 px-3  text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3  text-left text-sm font-semibold text-gray-500"
                   >
                     Invoice Amount
                   </th>
                   <th
                     scope="col"
-                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-900"
+                    className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500"
                   >
                     Status
                   </th>
@@ -94,22 +74,22 @@ export default function Invoices() {
               <tbody className="dark:bg-black divide-y divide-gray-200 bg-white">
                 {people.map((person) => (
                   <tr key={person.email}>
-                    <td className="dark:text-white whitespace-nowrap py-1.5 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8">
+                    <td className="pl-4 dark:text-white whitespace-nowrap py-1.5  pr-3 text-sm text-gray-900">
                       {person.name}
                     </td>
-                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                       {person.title}
                     </td>
-                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                       {person.email}
                     </td>
-                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                       {person.role}
                     </td>
-                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                       $40
                     </td>
-                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-500">
+                    <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                       <span
                         className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
                           person.status.toLowerCase() === "unpaid"
@@ -120,7 +100,7 @@ export default function Invoices() {
                         {person.status}
                       </span>
                     </td>
-                    <td className="flex items-center relative whitespace-nowrap py-1.5 pr-4 text-right text-sm font-medium ">
+                    <td className="flex items-center justify-end pr-4 relative whitespace-nowrap py-1.5  text-right text-sm font-medium ">
                       <a
                         className={
                           person.status.toLowerCase() === "paid"
@@ -169,7 +149,5 @@ export default function Invoices() {
             <div className="min-w-full border-b border-gray-200"></div>
           </div>
         </div>
-      </div>
-    </div>
   );
 }
