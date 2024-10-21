@@ -6,6 +6,8 @@ CREATE TABLE users (
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(255) NOT NULL,
+    company_name VARCHAR(255) NOT NULL,
+    business_address  VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL, -- admin, worker, manager 
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NOT NULL,

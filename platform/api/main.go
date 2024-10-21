@@ -16,8 +16,9 @@ import (
 
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/handler"
+	// "github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/logger"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
@@ -62,16 +63,22 @@ func main() {
 	r := chi.NewRouter()
 
 	// Middleware
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	// r.Use(middleware.Logger)
+	// r.Use(middleware.Recoverer)
 
 	// todo middleware handler for protected route 
 	// r.Middlewares().Handler()
 
 	// Public routes
 	// r.Get("/", publicRoute)
-	r.Get("/api/invoices", h.HandleFetchInvoices)
-	r.Post("/api/create-user", h.HandleCreateUser)
+    // Protected routes
+    r.Group(func(r chi.Router) {
+        r.Use(middleware.EnsureValidToken())
+        r.Get("/api/invoices", h.HandleFetchInvoices)
+        r.Get("/api/user", h.HandleGetUser)  // New endpoint for getting/creating user
+    })
+	
+	// r.Post("/api/create-user", h.HandleCreateUser)
 
 	// // Protected routes
 	// r.Group(func(r chi.Router) {

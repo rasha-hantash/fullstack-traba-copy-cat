@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
-    "time"
-	"github.com/segmentio/ksuid"
 	"math/rand"
+	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type Prefix string
@@ -21,6 +23,7 @@ type User struct {
     FirstName   string    `json:"first_name" db:"first_name"`
     LastName    string    `json:"last_name" db:"last_name"`
     Email       string    `json:"email" db:"email"`
+	CompanyName string    `json:"company_name" db:"company_name"`
     PhoneNumber string    `json:"phone_number" db:"phone_number"`
     Role        string    `json:"role" db:"role"`
     CreatedBy   string    `json:"created_by" db:"created_by"`
@@ -66,8 +69,9 @@ func NewService(db *sql.DB) Service {
 
 
 type Service interface {
-	FetchInvoices(userId string, searchTerm string) ([]Invoice, error)
-	CreateUser(userId string, user User) error
+	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	CreateUser(ctx context.Context, user *User) error
 }
 
 type service struct {
@@ -77,7 +81,7 @@ type service struct {
 var _ Service = &service{}
 
 
-func (s *service) CreateUser(userId string, user User) error {
+func (s *service) CreateUser(ctx context.Context, user *User) error {
 	// create new ksuid for user 
 	userID := generateID(UserPrefix)
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
@@ -99,8 +103,35 @@ func (s *service) CreateUser(userId string, user User) error {
 	return nil
 }
 
+func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	// create new ksuid for user 
+	userID := generateID(UserPrefix)
+	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
+	
+	// _, err := s.db.QueryContext(ctx, `
+	// 	INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
+	// 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	// `, userID, "Rasha", "Hantash", email)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error creating user: %w", err)
+	// }
 
-func (s *service) FetchInvoices(userId string, searchTerm string) ([]Invoice, error) {
+	
+	err := s.initializeData(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing data: %w", err)
+	}
+
+	return &User{
+		ID:          userID,
+		FirstName:   "Rasha",
+		LastName:    "Hantash",
+		Email:       email,
+		PhoneNumber: "571-226-7109"}, nil
+}
+
+
+func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error) {
     var query string
     var args []interface{}
     var invoices []Invoice

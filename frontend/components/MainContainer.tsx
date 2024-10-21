@@ -11,10 +11,10 @@ import {
 import ThemeSwitcher from "./ThemeSwitcher";
 import Sidebar from "./Sidebar";
 import Invoices from "./Invoices";
+
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
-
 
 
 export default function MainContainer() {
