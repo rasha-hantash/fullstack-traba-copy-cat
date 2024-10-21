@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:14.6
+    restart: always #todo look into what the restart option does
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_DB=traba
+    ports:
+      - '5438:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
