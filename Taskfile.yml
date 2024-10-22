@@ -12,7 +12,7 @@ tasks:
 
     local:migrate:down:
         cmds:
-          - migrate -path platform/sql/migrations/ -database "postgresql://traba:password@localhost:5438/traba?sslmode=disable" -verbose down
+          - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose down
 
     remote:migrate:up:
       vars:
