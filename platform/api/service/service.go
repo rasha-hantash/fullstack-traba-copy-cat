@@ -104,30 +104,29 @@ func (s *service) CreateUser(ctx context.Context, user *User) error {
 }
 
 func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	// create new ksuid for user 
-	userID := generateID(UserPrefix)
-	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
+	var user User
 	
-	// _, err := s.db.QueryContext(ctx, `
-	// 	INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
-	// 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	// `, userID, "Rasha", "Hantash", email)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error creating user: %w", err)
-	// }
+	user.Email = email
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, first_name, last_name, phone_number
+		FROM users 
+		WHERE email = $1`,
+		email,
+	).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.PhoneNumber,
+	)
 
-	
-	err := s.initializeData(userID)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing data: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error fetching user with email %s: %w", email, err)
 	}
 
-	return &User{
-		ID:          userID,
-		FirstName:   "Rasha",
-		LastName:    "Hantash",
-		Email:       email,
-		PhoneNumber: "571-226-7109"}, nil
+	return &user, nil
 }
 
 

@@ -19,7 +19,7 @@ func NewHandler(svc service.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleFetchUser(w http.ResponseWriter, r *http.Request) {
     customClaims, ok := r.Context().Value("user").(*middleware.CustomClaims)
     if !ok {
         http.Error(w, "Failed to get user claims", http.StatusInternalServerError)

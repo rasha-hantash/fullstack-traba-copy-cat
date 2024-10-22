@@ -87,7 +87,7 @@ func main() {
     r.Group(func(r chi.Router) {
         r.Use(middleware.EnsureValidToken())
         r.Get("/api/invoices", h.HandleFetchInvoices)
-        r.Get("/api/user", h.HandleGetUser)  // New endpoint for getting/creating user
+        r.Get("/api/user", h.HandleFetchUser)  // New endpoint for getting/creating user
     })
 	
 	// r.Post("/api/create-user", h.HandleCreateUser)
