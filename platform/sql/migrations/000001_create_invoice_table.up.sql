@@ -6,6 +6,8 @@ CREATE TABLE users (
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(255) NOT NULL,
+    company_name VARCHAR(255) NOT NULL,
+    business_address  VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL, -- admin, worker, manager 
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NOT NULL,
@@ -25,7 +27,7 @@ CREATE TABLE shifts (
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     FOREIGN KEY (worker_id) REFERENCES users(id)
 );
 

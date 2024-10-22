@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
-    "time"
-	"github.com/segmentio/ksuid"
 	"math/rand"
+	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type Prefix string
@@ -21,6 +23,7 @@ type User struct {
     FirstName   string    `json:"first_name" db:"first_name"`
     LastName    string    `json:"last_name" db:"last_name"`
     Email       string    `json:"email" db:"email"`
+	CompanyName string    `json:"company_name" db:"company_name"`
     PhoneNumber string    `json:"phone_number" db:"phone_number"`
     Role        string    `json:"role" db:"role"`
     CreatedBy   string    `json:"created_by" db:"created_by"`
@@ -66,8 +69,9 @@ func NewService(db *sql.DB) Service {
 
 
 type Service interface {
-	FetchInvoices(userId string, searchTerm string) ([]Invoice, error)
-	CreateUser(userId string, user User) error
+	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	CreateUser(ctx context.Context, user *User) error
 }
 
 type service struct {
@@ -77,7 +81,7 @@ type service struct {
 var _ Service = &service{}
 
 
-func (s *service) CreateUser(userId string, user User) error {
+func (s *service) CreateUser(ctx context.Context, user *User) error {
 	// create new ksuid for user 
 	userID := generateID(UserPrefix)
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
@@ -99,8 +103,34 @@ func (s *service) CreateUser(userId string, user User) error {
 	return nil
 }
 
+func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	
+	user.Email = email
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, first_name, last_name, phone_number
+		FROM users 
+		WHERE email = $1`,
+		email,
+	).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.PhoneNumber,
+	)
 
-func (s *service) FetchInvoices(userId string, searchTerm string) ([]Invoice, error) {
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error fetching user with email %s: %w", email, err)
+	}
+
+	return &user, nil
+}
+
+
+func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error) {
     var query string
     var args []interface{}
     var invoices []Invoice
