@@ -3,6 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { getAccessToken } from '@auth0/nextjs-auth0';
 import { useRouter } from 'next/navigation';
 
 
@@ -28,23 +29,66 @@ export default function Home() {
     }
   }, [isLoading, user, router]);
 
-
   useEffect(() => {
     const fetchUserData = async () => {
+      console.log('fetchUserData');
+      console.log(user);
       if (user) {
         try {
+          // Get the access token from Auth0
+          // todo double check this and see if this is the most secure way of making auth0 api calls 
           const response = await fetch('/api/user');
+          console.log(response);
           if (!response.ok) {
-            throw new Error('Failed to fetch user data');
+            throw new Error(
+              `Failed to fetch user data: ${response.status} ${response.statusText}`
+            );
           }
+
           const data = await response.json();
           setUserData(data);
         } catch (err) {
+          console.error(err);
           setFetchError(err instanceof Error ? err.message : 'An error occurred');
         }
       }
     };
+    fetchUserData();
+  }, [user]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      console.log('fetchUserData');
+      if (user) {
+        
+        try {
+          console.log("here");
+          const session = await getAccessToken();
+          console.log("access token");
+          // Get the access token from Auth0
+          // todo double check this and see if this is the most secure way of making auth0 api calls 
+          const response = await fetch('http://localhost:8000/api/user', {
+            headers: {
+              'Authorization': `Bearer ${session?.accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include if you need cookies
+          });
+          console.log(response);
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch user data: ${response.status} ${response.statusText}`
+            );
+          }
+
+          const data = await response.json();
+          setUserData(data);
+        } catch (err) {
+          console.error(err);
+          setFetchError(err instanceof Error ? err.message : 'An error occurred');
+        }
+      }
+    };
     fetchUserData();
   }, [user]);
 

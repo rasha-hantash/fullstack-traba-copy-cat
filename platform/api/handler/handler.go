@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log/slog"
+    "fmt"
 	"net/http"
-	"database/sql"
+    "os"
 
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
@@ -19,7 +21,13 @@ func NewHandler(svc service.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-func (h *Handler) HandleFetchUser(w http.ResponseWriter, r *http.Request) {
+
+type CreateUserReq struct {
+	User  service.User `json:"user"`
+	Secret string `json:"secret"`
+}
+func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Fetching user")
     customClaims, ok := r.Context().Value("user").(*middleware.CustomClaims)
     if !ok {
         http.Error(w, "Failed to get user claims", http.StatusInternalServerError)
@@ -29,37 +37,49 @@ func (h *Handler) HandleFetchUser(w http.ResponseWriter, r *http.Request) {
     user, err := h.svc.GetUserByEmail(r.Context(), customClaims.Email)
     if err != nil {
         if err == sql.ErrNoRows {
-            // User doesn't exist, create a new one
-            newUser := service.User{
-                Email:       customClaims.Email,
-                FirstName:   customClaims.UserMetadata.FirstName,
-                LastName:    customClaims.UserMetadata.LastName,
-                CompanyName: customClaims.UserMetadata.CompanyName,
-                PhoneNumber: customClaims.UserMetadata.PhoneNumber,
-            }
-
-            err := h.svc.CreateUser(r.Context(), &newUser)
-            if err != nil {
-                http.Error(w, "Failed to create user", http.StatusInternalServerError)
-                return
-            }
-
-            w.WriteHeader(http.StatusCreated)
-            json.NewEncoder(w).Encode(newUser)
-        } else {
-            http.Error(w, "Failed to get user", http.StatusInternalServerError)
+            http.Error(w, "User not found", http.StatusNotFound)
+            return
         }
+        slog.Error("failed to get user", "error", err)
+        http.Error(w, "failed to get user", http.StatusInternalServerError)
         return
     }
 
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(user)
+
+    sendJSONResponse(w, http.StatusOK, user)
+}
+
+func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
+    // Get the user from the context
+    var reqBody CreateUserReq
+    err := json.NewDecoder(r.Body).Decode(&reqBody)
+    if err != nil {
+        slog.Error("failed to decode user", "error", err)
+        http.Error(w, "failed to decode user", http.StatusBadRequest)
+        return
+    }
+
+    	// 2. Validate secret
+	if reqBody.Secret != os.Getenv("AUTH0_HOOK_SECRET") {
+		sendJSONResponse(w, http.StatusForbidden, "You must provide the secret")
+		return
+	}
+
+    // Create the user
+    userID, err := h.svc.CreateUser(r.Context(), &reqBody.User)
+    if err != nil {
+        slog.Error("failed to create user", "error", err)
+        http.Error(w, "failed to create user", http.StatusInternalServerError)
+        return
+    }
+
+    // Return the user
+    sendJSONResponse(w, http.StatusOK, fmt.Sprintf(`{"user_id":"%s"}`, userID))
 }
 
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
 	userId := r.Context().Value("user_id").(string)
-	// Get the invoices from the service
 
 	searchTerm := r.URL.Query().Get("search")
 
@@ -70,6 +90,11 @@ func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Return the invoices
+    sendJSONResponse(w, http.StatusOK, invoices)
+}
+
+func sendJSONResponse(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(invoices)
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(payload)
 }

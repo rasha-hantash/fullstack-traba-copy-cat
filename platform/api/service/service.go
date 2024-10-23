@@ -26,10 +26,6 @@ type User struct {
 	CompanyName string    `json:"company_name" db:"company_name"`
     PhoneNumber string    `json:"phone_number" db:"phone_number"`
     Role        string    `json:"role" db:"role"`
-    CreatedBy   string    `json:"created_by" db:"created_by"`
-    UpdatedBy   string    `json:"updated_by" db:"updated_by"`
-    CreatedAt   time.Time `json:"created_at" db:"created_at"`
-    UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Shift struct {
@@ -71,7 +67,7 @@ func NewService(db *sql.DB) Service {
 type Service interface {
 	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	CreateUser(ctx context.Context, user *User) error
+	CreateUser(ctx context.Context, user *User) (string, error)
 }
 
 type service struct {
@@ -81,26 +77,26 @@ type service struct {
 var _ Service = &service{}
 
 
-func (s *service) CreateUser(ctx context.Context, user *User) error {
+func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 	// create new ksuid for user 
 	userID := generateID(UserPrefix)
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
 	
 	_, err := s.db.Exec(`
-		INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
+		INSERT INTO users (id, first_name, last_name, email, phone_number)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, userID, "Rasha", "Hantash", user.Email, "571-226-7109", user.Role, userID)
+	`, userID, user.FirstName,  user.LastName, user.Email, user.PhoneNumber)
 	if err != nil {
-		return fmt.Errorf("error creating user: %w", err)
+		return "", fmt.Errorf("error creating user: %w", err)
 	}
 
 	
 	err = s.initializeData(userID)
 	if err != nil {
-		return fmt.Errorf("error initializing data: %w", err)
+		return "", fmt.Errorf("error initializing data: %w", err)
 	}
 
-	return nil
+	return userID, nil
 }
 
 func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {

@@ -46,7 +46,7 @@ type Auth0Management struct {
 // NewAuth0Management creates a new Auth0Management instance
 func NewAuth0Management() *Auth0Management {
 	// read from .env file 
-	godotenv.Load("../../.env")
+	godotenv.Load(".env")
 	return &Auth0Management{
 		domain:       os.Getenv("AUTH0_DOMAIN"),
 		clientID:     os.Getenv("AUTH0_MANAGEMENT_CLIENT_ID"),
@@ -137,58 +137,57 @@ func (a *Auth0Management) AssignRole(userID, roleID string) error {
 // is where custom validation logic can be defined.
 func (c CustomClaims) Validate(ctx context.Context) error {
 	// Check if the email is present and has a valid format
-	log.Println("Validating email")
-	if c.Email == "" {
-		return errors.New("email is required")
-	}
-	_, err := url.ParseRequestURI(c.Email)
-	if err != nil {
-		return errors.New("email format is invalid")
-	}
+	// log.Println("Validating email")
+	// if c.Email == "" {
+	// 	return errors.New("email is required")
+	// }
+	// log.Println("email ", c.Email)
 
-	// Check if email is verified
-	if !c.EmailVerified {
-		return errors.New("email is not verified")
-	}
+	// log.Println(c)
 
-	// Add any other custom validations you may need for UserMetadata
-	if len(c.Roles) == 0 {
-		if c.UserMetadata.FirstName == "" || c.UserMetadata.LastName == "" {
-			return errors.New("first name and last name are required")
-		}
+	// // Check if email is verified
+	// if !c.EmailVerified {
+	// 	return errors.New("email is not verified")
+	// }
 
-		if c.UserMetadata.CompanyName == "" {
-			return errors.New("company name is required")
-		}
+	// // Add any other custom validations you may need for UserMetadata
+	// if len(c.Roles) == 0 {
+	// 	if c.UserMetadata.FirstName == "" || c.UserMetadata.LastName == "" {
+	// 		return errors.New("first name and last name are required")
+	// 	}
 
-		// Initialize Auth0 Management API client
-		auth0Management := NewAuth0Management()
+	// 	if c.UserMetadata.CompanyName == "" {
+	// 		return errors.New("company name is required")
+	// 	}
 
-		// Extract user ID from the context
-		claims, ok := ctx.Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
-		if !ok {
-			return errors.New("failed to get claims from context")
-		}
+	// 	// Initialize Auth0 Management API client
+	// 	auth0Management := NewAuth0Management()
 
-		// Get the user ID from the subject claim
-		userID := claims.RegisteredClaims.Subject
+	// 	// Extract user ID from the context
+	// 	claims, ok := ctx.Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+	// 	if !ok {
+	// 		return errors.New("failed to get claims from context")
+	// 	}
 
-		// Assign the employer role
-		err := auth0Management.AssignRole(userID, auth0Management.roleID)
-		if err != nil {
-			log.Printf("Failed to assign employer role: %v", err)
-			// Don't fail validation if role assignment fails
-			// The role will be assigned on next request
-		}
+	// 	// Get the user ID from the subject claim
+	// 	userID := claims.RegisteredClaims.Subject
 
-		// todo add the role employer to the roles array of role id rol_lz7KugKHb6tiTJVl
-	}
+	// 	// Assign the employer role
+	// 	err := auth0Management.AssignRole(userID, auth0Management.roleID)
+	// 	if err != nil {
+	// 		log.Printf("Failed to assign employer role: %v", err)
+	// 		// Don't fail validation if role assignment fails
+	// 		// The role will be assigned on next request
+	// 	}
+
+	// 	// todo add the role employer to the roles array of role id rol_lz7KugKHb6tiTJVl
+	// }
 	return nil
 }
 
 // EnsureValidToken is a middleware that will check the validity of our JWT.
 func EnsureValidToken() func(next http.Handler) http.Handler {
-	godotenv.Load("../../.env")
+	godotenv.Load(".env")
 	log.Println("Setting up jwt middleware")
 	issuerURL, err := url.Parse(os.Getenv("AUTH0_ISSUER_BASE_URL"))
 	if err != nil {
