@@ -62,7 +62,6 @@ export default function Home() {
       if (user) {
         
         try {
-          console.log("here");
           const session = await getAccessToken();
           console.log("access token");
           // Get the access token from Auth0
