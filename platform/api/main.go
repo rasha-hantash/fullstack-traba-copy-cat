@@ -84,11 +84,12 @@ func main() {
 		Debug: true,
 	}).Handler)
 
+	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
+
     r.Group(func(r chi.Router) {
         r.Use(middleware.EnsureValidToken())
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser) 
-		r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
     })
 	
 	// r.Post("/api/create-user", h.HandleCreateUser)

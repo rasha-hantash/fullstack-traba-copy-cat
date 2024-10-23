@@ -65,6 +65,8 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    slog.Info("user", "company_name", reqBody.User.CompanyName, "email", reqBody.User.Email)
+
     // Create the user
     userID, err := h.svc.CreateUser(r.Context(), &reqBody.User)
     if err != nil {

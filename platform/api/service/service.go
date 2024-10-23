@@ -25,7 +25,6 @@ type User struct {
     Email       string    `json:"email" db:"email"`
 	CompanyName string    `json:"company_name" db:"company_name"`
     PhoneNumber string    `json:"phone_number" db:"phone_number"`
-    Role        string    `json:"role" db:"role"`
 }
 
 type Shift struct {
@@ -83,12 +82,14 @@ func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
 	
 	_, err := s.db.Exec(`
-		INSERT INTO users (id, first_name, last_name, email, phone_number)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, userID, user.FirstName,  user.LastName, user.Email, user.PhoneNumber)
+		INSERT INTO users (id, first_name, last_name, email, phone_number, company_name, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, userID, user.FirstName,  user.LastName, user.Email, user.PhoneNumber, user.CompanyName, userID)
 	if err != nil {
 		return "", fmt.Errorf("error creating user: %w", err)
 	}
+
+	slog.Info("User created successfully", "user_id", userID)
 
 	
 	err = s.initializeData(userID)
@@ -194,9 +195,9 @@ func (s *service) initializeData(employerID string) error {
 	// Create a worker user
 	userID := generateID(UserPrefix)
 	_, err = tx.Exec(`
-		INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $1, $1)
-	`, userID, "John", "Doe", "john.doe@example.com", "1234567890", userID, userID)
+		INSERT INTO users (id, first_name, last_name, email, phone_number, company_name, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, userID, "John", "Doe", "john.doe@example.com", "1234567890", "", userID)
 	if err != nil {
 		return fmt.Errorf("failed to insert user: %w", err)
 	}
@@ -205,9 +206,9 @@ func (s *service) initializeData(employerID string) error {
 	// todo make the 
 	shiftID := generateID(ShiftPrefix)
 	_, err = tx.Exec(`
-		INSERT INTO shifts (id, start_date, end_date, location, shift_name, shifts_filled, shift_description, created_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-	`, shiftID, time.Now(), time.Now().AddDate(0, 0, 7), "Main Street", "Day Shift", 4,  "Regular day shift", time.Now(), userID)
+		INSERT INTO shifts (id, worker_id, start_date, end_date, location, shift_name, shifts_filled, shift_description, created_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`, shiftID, userID, time.Now(), time.Now().AddDate(0, 0, 7), "Main Street", "Day Shift", 4,  "Regular day shift", time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to insert shift: %w", err)
 	}
@@ -248,9 +249,9 @@ func generateInvoices(tx *sql.Tx, shiftID, employerID string) error {
 		randomAmount := rand.Intn(90001) + 10000 // Random number between 10000 and 100000
 
 		_, err := tx.Exec(`
-			INSERT INTO invoices (id, start_date, end_date, invoice_amount, status, shift_id, invoice_name, created_by, updated_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-		`, invoiceID, time.Now(), time.Now().AddDate(0, 0, 7), randomAmount, "pending", shiftID, randomShiftName, employerID)
+			INSERT INTO invoices (id, invoice_amount, status, shift_id, invoice_name, created_by, updated_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, invoiceID, randomAmount, "pending", shiftID, randomShiftName, employerID)
 		
 		if err != nil {
 			return fmt.Errorf("failed to insert invoice %d: %w", i+1, err)
