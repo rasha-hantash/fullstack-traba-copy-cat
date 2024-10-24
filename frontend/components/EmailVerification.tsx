@@ -1,14 +1,38 @@
-import { AlertTriangle, Mail } from 'lucide-react';
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Mail } from 'lucide-react';
+import { useState } from 'react';
 
 interface EmailVerificationPageProps {
   email: string;
+  onResendVerification?: () => Promise<void>;
 }
 
-const EmailVerificationPage = ({ email }: EmailVerificationPageProps) => {
+const EmailVerificationPage = ({ email, onResendVerification }: EmailVerificationPageProps) => {
+  const [isResending, setIsResending] = useState(false);
+  const [showResendSuccess, setShowResendSuccess] = useState(false);
+
+  const handleResend = async () => {
+    if (!onResendVerification || isResending) return;
+    
+    setIsResending(true);
+    setShowResendSuccess(false);
+    
+    try {
+      await onResendVerification();
+      setShowResendSuccess(true);
+    } catch (error) {
+      // Error handling could be added here
+    } finally {
+      setIsResending(false);
+    }
+    
+    // Hide success message after 5 seconds
+    setTimeout(() => {
+      setShowResendSuccess(false);
+    }, 5000);
+  };
+
   return (
-    <div className=" min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white border p-4 rounded-md w-full max-w-md">
         <div>
           <div className="flex justify-center mb-6">
@@ -23,14 +47,10 @@ const EmailVerificationPage = ({ email }: EmailVerificationPageProps) => {
         </div>
         <div>
           <div className="p-3 flex items-center mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            {/* <AlertDescription> */}
-            <div className='ml-1' >
-            A verification email has been sent to:{' '}
-            </div>
-               
+            <div className="ml-1">
+              A verification email has been sent to:{' '}
               <span className="font-medium">{email}</span>
-            {/* </AlertDescription> */}
+            </div>
           </div>
           
           <div className="space-y-4 text-center text-sm text-gray-600">
@@ -40,6 +60,27 @@ const EmailVerificationPage = ({ email }: EmailVerificationPageProps) => {
             <p>
               You may need to check your spam folder.
             </p>
+          </div>
+
+          <div className="mt-8 text-center">
+            <span className=" text-sm text-gray-600">Didn't receive the email? </span>
+            <button
+              onClick={handleResend}
+              disabled={isResending}
+              className={`text-sm font-medium ${
+                isResending 
+                  ? 'text-gray-400 cursor-not-allowed' 
+                  : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
+              {isResending ? 'Sending...' : "Send again"}
+            </button>
+            
+            {showResendSuccess && (
+              <p className="mt-2 text-sm text-green-600">
+                Verification email sent successfully!
+              </p>
+            )}
           </div>
         </div>
       </div>
