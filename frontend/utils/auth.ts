@@ -1,10 +1,28 @@
 // import { jwtDecode } from 'jwt-decode';
-import { verify, decode } from 'jsonwebtoken';
+import { verify } from 'jsonwebtoken';
 
 interface TokenPayload {
   sub: string;
   email: string;
+  provider: string;
 }
+
+export interface VerificationEmailResponse {
+    status: string;
+    type: string;
+    created_at: string;
+    id: string;
+  }
+  
+ export  interface VerificationEmailPayload {
+    user_id: string;
+    client_id?: string;
+    identity: {
+      user_id: string;
+      provider: string;
+    };
+    organization_id?: string; // todo include organization id to make organization parameters + branding available to the email template
+  }
 
 export const verifyAndDecodeSessionToken = async (token: string): Promise<TokenPayload> => {
   try {

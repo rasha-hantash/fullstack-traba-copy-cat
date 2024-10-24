@@ -9,6 +9,8 @@ export default function VerifyEmailPage() {
   const session_token  = searchParams.get('session_token')
   const [email, setEmail] = useState<string | null>(null);
   const [auth0UserId, setAuth0UserId] = useState<string | null>(null);
+  const [identityAuth0UserId, setIdentityAuth0UserId] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
   // const [userData, setUserData] = useState<{ name: string | null }>({ name: null });
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +50,10 @@ export default function VerifyEmailPage() {
 
         const verified = await response.json();
         setEmail(verified.email);
-        setAuth0UserId(verified.auth0UserId);
+        console.log("verified.sub", verified.sub);
+        setAuth0UserId(verified.sub);
+        setIdentityAuth0UserId(verified.identity.user_id);
+        setProvider(verified.identity.provider);
       } catch (err) {
         console.log("this is the error", err)
         setError('Invalid or expired token');
@@ -91,6 +96,9 @@ export default function VerifyEmailPage() {
   
       <EmailVerification 
       email={ email || '' }
+      auth0UserId={ auth0UserId || '' }
+      identityAuth0UserId={ identityAuth0UserId || '' } 
+      provider={ provider || '' }
     />
     
   );

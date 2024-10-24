@@ -1,23 +1,56 @@
 import { Mail } from 'lucide-react';
 import { useState } from 'react';
 
-interface EmailVerificationPageProps {
-  email: string;
-  onResendVerification?: () => Promise<void>;
+
+interface VerificationEmailResponse {
+  status: string;
+  type: string;
+  created_at: string;
+  id: string;
 }
 
-const EmailVerificationPage = ({ email, onResendVerification }: EmailVerificationPageProps) => {
+interface VerificationEmailPayload {
+  user_id: string;
+  client_id?: string;
+  identity: {
+    user_id: string;
+    provider: string;
+  };
+  organization_id?: string; // todo include organization id to make organization parameters + branding available to the email template
+}
+
+
+interface EmailVerificationPageProps {
+  email: string;
+  auth0UserId: string;
+  identityAuth0UserId: string;
+  provider: string;
+  // onResendVerification?: () => Promise<void>;
+}
+
+const EmailVerificationPage = ({ email, auth0UserId, identityAuth0UserId, provider}: EmailVerificationPageProps) => {
+  console.log("identityAuth0UserId", identityAuth0UserId);
   const [isResending, setIsResending] = useState(false);
   const [showResendSuccess, setShowResendSuccess] = useState(false);
 
   const handleResend = async () => {
-    if (!onResendVerification || isResending) return;
+    if (isResending) return;
     
     setIsResending(true);
     setShowResendSuccess(false);
     
     try {
-      await onResendVerification();
+      const payload: VerificationEmailPayload = {
+        user_id: auth0UserId,
+        identity: {
+          user_id: identityAuth0UserId,
+          provider: provider, // You might want to make this configurable
+        },
+      };
+
+      console.log("payload", payload);
+
+      await resendVerificationEmail(payload);
       setShowResendSuccess(true);
     } catch (error) {
       // Error handling could be added here
@@ -30,6 +63,27 @@ const EmailVerificationPage = ({ email, onResendVerification }: EmailVerificatio
       setShowResendSuccess(false);
     }, 5000);
   };
+
+  async function resendVerificationEmail(payload: VerificationEmailPayload): Promise<VerificationEmailResponse> {
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    });
+  
+    const response = await fetch(`/api/resend-verification`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      // redirect: 'follow',
+    });
+  
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to resend verification email');
+    }
+  
+    return response.json();
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -53,7 +107,7 @@ const EmailVerificationPage = ({ email, onResendVerification }: EmailVerificatio
             </div>
           </div>
           
-          <div className="space-y-4 text-center text-sm text-gray-600">
+          <div className="space-y-1 text-center text-sm text-gray-600">
             <p>
               Click on the link in your email to complete your sign up.
             </p>
@@ -62,7 +116,7 @@ const EmailVerificationPage = ({ email, onResendVerification }: EmailVerificatio
             </p>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-4 text-center">
             <span className=" text-sm text-gray-600">Didn't receive the email? </span>
             <button
               onClick={handleResend}
