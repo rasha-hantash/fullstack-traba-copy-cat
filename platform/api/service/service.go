@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
-    "time"
-	"github.com/segmentio/ksuid"
 	"math/rand"
+	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type Prefix string
@@ -21,12 +23,8 @@ type User struct {
     FirstName   string    `json:"first_name" db:"first_name"`
     LastName    string    `json:"last_name" db:"last_name"`
     Email       string    `json:"email" db:"email"`
+	CompanyName string    `json:"company_name" db:"company_name"`
     PhoneNumber string    `json:"phone_number" db:"phone_number"`
-    Role        string    `json:"role" db:"role"`
-    CreatedBy   string    `json:"created_by" db:"created_by"`
-    UpdatedBy   string    `json:"updated_by" db:"updated_by"`
-    CreatedAt   time.Time `json:"created_at" db:"created_at"`
-    UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Shift struct {
@@ -66,8 +64,9 @@ func NewService(db *sql.DB) Service {
 
 
 type Service interface {
-	FetchInvoices(userId string, searchTerm string) ([]Invoice, error)
-	CreateUser(userId string, user User) error
+	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	CreateUser(ctx context.Context, user *User) (string, error)
 }
 
 type service struct {
@@ -77,30 +76,58 @@ type service struct {
 var _ Service = &service{}
 
 
-func (s *service) CreateUser(userId string, user User) error {
+func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 	// create new ksuid for user 
 	userID := generateID(UserPrefix)
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
 	
 	_, err := s.db.Exec(`
-		INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, userID, "Rasha", "Hantash", user.Email, "571-226-7109", user.Role, userID)
+		INSERT INTO users (id, first_name, last_name, email, phone_number, company_name, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, userID, user.FirstName,  user.LastName, user.Email, user.PhoneNumber, user.CompanyName, userID)
 	if err != nil {
-		return fmt.Errorf("error creating user: %w", err)
+		return "", fmt.Errorf("error creating user: %w", err)
 	}
+
+	slog.Info("User created successfully", "user_id", userID)
 
 	
 	err = s.initializeData(userID)
 	if err != nil {
-		return fmt.Errorf("error initializing data: %w", err)
+		return "", fmt.Errorf("error initializing data: %w", err)
 	}
 
-	return nil
+	return userID, nil
+}
+
+func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	
+	user.Email = email
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, first_name, last_name, phone_number
+		FROM users 
+		WHERE email = $1`,
+		email,
+	).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.PhoneNumber,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error fetching user with email %s: %w", email, err)
+	}
+
+	return &user, nil
 }
 
 
-func (s *service) FetchInvoices(userId string, searchTerm string) ([]Invoice, error) {
+func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error) {
     var query string
     var args []interface{}
     var invoices []Invoice
@@ -168,9 +195,9 @@ func (s *service) initializeData(employerID string) error {
 	// Create a worker user
 	userID := generateID(UserPrefix)
 	_, err = tx.Exec(`
-		INSERT INTO users (id, first_name, last_name, email, phone_number, role, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $1, $1)
-	`, userID, "John", "Doe", "john.doe@example.com", "1234567890", userID, userID)
+		INSERT INTO users (id, first_name, last_name, email, phone_number, company_name, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, userID, "John", "Doe", "john.doe@example.com", "1234567890", "", userID)
 	if err != nil {
 		return fmt.Errorf("failed to insert user: %w", err)
 	}
@@ -179,9 +206,9 @@ func (s *service) initializeData(employerID string) error {
 	// todo make the 
 	shiftID := generateID(ShiftPrefix)
 	_, err = tx.Exec(`
-		INSERT INTO shifts (id, start_date, end_date, location, shift_name, shifts_filled, shift_description, created_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-	`, shiftID, time.Now(), time.Now().AddDate(0, 0, 7), "Main Street", "Day Shift", 4,  "Regular day shift", time.Now(), userID)
+		INSERT INTO shifts (id, worker_id, start_date, end_date, location, shift_name, shifts_filled, shift_description, created_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`, shiftID, userID, time.Now(), time.Now().AddDate(0, 0, 7), "Main Street", "Day Shift", 4,  "Regular day shift", time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to insert shift: %w", err)
 	}
@@ -222,9 +249,9 @@ func generateInvoices(tx *sql.Tx, shiftID, employerID string) error {
 		randomAmount := rand.Intn(90001) + 10000 // Random number between 10000 and 100000
 
 		_, err := tx.Exec(`
-			INSERT INTO invoices (id, start_date, end_date, invoice_amount, status, shift_id, invoice_name, created_by, updated_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-		`, invoiceID, time.Now(), time.Now().AddDate(0, 0, 7), randomAmount, "pending", shiftID, randomShiftName, employerID)
+			INSERT INTO invoices (id, invoice_amount, status, shift_id, invoice_name, created_by, updated_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, invoiceID, randomAmount, "pending", shiftID, randomShiftName, employerID)
 		
 		if err != nil {
 			return fmt.Errorf("failed to insert invoice %d: %w", i+1, err)

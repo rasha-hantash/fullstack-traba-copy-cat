@@ -5,7 +5,7 @@ import (
 	_ "github.com/lib/pq"
 	"log/slog"
 	"time"
-
+	"github.com/joho/godotenv"
 	"github.com/caarlos0/env/v6"
 
 
@@ -16,21 +16,25 @@ import (
 
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/handler"
+	// "github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/logger"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
+	"github.com/rs/cors"
 )
 
 
 type DatabaseConfig struct {
 	// todo update the connection string to be localhost, postgres, or whatever the host name is supposed to be 
-	ConnString string `env:"CONN_STRING" envDefault:"postgresql://postgres:postgres@localhost:5438/?sslmode=disable"`
+	ConnString string `env:"CONN_STRING" envDefault:"postgresql://admin:your_password@localhost:5438/traba?sslmode=disable"`
 	User       string `env:"DB_USER" envDefault:""`
 	Port       string `env:"DB_PORT" envDefault:""`
 	Host       string `env:"DB_HOST" envDefault:""`
 	Region     string `env:"DB_REGION" envDefault:""`
 	DBName     string `env:"DB_NAME" envDefault:""`
 }
+
+// type Auth
 
 type Config struct {
 	ServerPort         string `env:"PORT" envDefault:"8000"`
@@ -41,6 +45,7 @@ type Config struct {
 
 // todo add logger later on
 func main() {
+	godotenv.Load(".env")
 	var c Config
 	err := env.Parse(&c)
 	if err != nil {
@@ -62,25 +67,34 @@ func main() {
 	r := chi.NewRouter()
 
 	// Middleware
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	// r.Use(middleware.Logger)
+	// r.Use(middleware.Recoverer)
 
-	// todo middleware handler for protected route 
-	// r.Middlewares().Handler()
+	r.Use(cors.New(cors.Options{
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
+		AllowedOrigins: []string{
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			// "https://staging.getclaimclam.com",
+			// "https://app.getclaimclam.com",
+		},
+		Debug: true,
+	}).Handler)
 
-	// Public routes
-	// r.Get("/", publicRoute)
-	r.Get("/api/invoices", h.HandleFetchInvoices)
-	r.Post("/api/create-user", h.HandleCreateUser)
+	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
-	// // Protected routes
-	// r.Group(func(r chi.Router) {
-		
-	// })
+    r.Group(func(r chi.Router) {
+        r.Use(middleware.EnsureValidToken())
+        r.Get("/api/invoices", h.HandleFetchInvoices)
+        r.Get("/api/user", h.HandleGetUser) 
+    })
 
 	// todo catch the error here
-	http.ListenAndServe(":8000", r)
-
+	if err := http.ListenAndServe(":"+c.ServerPort, r); err != nil {
+		slog.Error("failed to start server", "error", err)
+		os.Exit(1)
+	}
 }
 
 

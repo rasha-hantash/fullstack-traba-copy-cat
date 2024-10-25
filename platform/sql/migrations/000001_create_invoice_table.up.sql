@@ -6,11 +6,11 @@ CREATE TABLE users (
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(255) NOT NULL,
-    role VARCHAR(255) NOT NULL, -- admin, worker, manager 
+    company_name VARCHAR(255) NOT NULL,
     created_by VARCHAR(255) NOT NULL,
-    updated_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP
 );
 
 CREATE TABLE shifts (
@@ -19,28 +19,26 @@ CREATE TABLE shifts (
     end_date DATE NOT NULL,
     location VARCHAR(255) NOT NULL,
     shift_name VARCHAR(255) NOT NULL,
-    shifts_filled DATE NOT NULL,
+    shifts_filled INTEGER NOT NULL,
     worker_id VARCHAR(255) NOT NULL,
     shift_description TEXT,
     created_by VARCHAR(255) NOT NULL,
-    updated_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_by VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP,
     FOREIGN KEY (worker_id) REFERENCES users(id)
 );
 
 CREATE TABLE invoices (
     id VARCHAR(255) PRIMARY KEY,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
     invoice_amount INTEGER NOT NULL,
     status VARCHAR(255) NOT NULL,
     shift_id VARCHAR(255) NOT NULL,
     invoice_name VARCHAR(255),
     created_by VARCHAR(255) NOT NULL,
-    updated_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_by VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP,
     FOREIGN KEY (shift_id) REFERENCES shifts(id)
 );
 

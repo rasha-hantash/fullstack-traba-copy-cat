@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   ListFilter,
   ArrowUpRight,
@@ -25,6 +26,32 @@ const people = [
 ];
 
 export default function Invoices() {
+  // const [invoices, setInvoices] = useState([]);
+  // const [isLoading, setIsLoading] = useState(true);
+  // const [error, setError] = useState(null);
+
+  // useEffect(() => {
+  //   fetchInvoices();
+  // }, []);
+
+  // const fetchInvoices = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const response = await fetch('http://localhost:8000/api/fetch-invoices');
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch invoices');
+  //     }
+  //     const data = await response.json();
+  //     setInvoices(data);
+  //     setError(null);
+  //   } catch (err) {
+  //     setError(err.message);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  
   return (
     <div>
 
