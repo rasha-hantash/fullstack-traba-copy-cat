@@ -36,8 +36,10 @@ class ManagementClient {
   private async refreshToken(): Promise<string> {
     try {
       const domain = process.env.AUTH0_ISSUER_BASE_URL;
-      const clientId = process.env.AUTH0_MANAGEMENT_CLIENT_ID;
-      const clientSecret = process.env.AUTH0_MANAGEMENT_CLIENT_SECRET;
+      const clientId = process.env.AUTH0_CLIENT_ID;
+      const clientSecret = process.env.AUTH0_CLIENT_SECRET;
+      // const clientId = process.env.AUTH0_MANAGEMENT_CLIENT_ID;
+      // const clientSecret = process.env.AUTH0_MANAGEMENT_CLIENT_SECRET;
       const audience = `${domain}/api/v2/`;
 
       const response = await fetch(`${domain}/oauth/token`, {

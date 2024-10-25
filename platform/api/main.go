@@ -5,7 +5,7 @@ import (
 	_ "github.com/lib/pq"
 	"log/slog"
 	"time"
-
+	"github.com/joho/godotenv"
 	"github.com/caarlos0/env/v6"
 
 
@@ -45,6 +45,7 @@ type Config struct {
 
 // todo add logger later on
 func main() {
+	godotenv.Load(".env")
 	var c Config
 	err := env.Parse(&c)
 	if err != nil {
@@ -69,9 +70,6 @@ func main() {
 	// r.Use(middleware.Logger)
 	// r.Use(middleware.Recoverer)
 
-	// todo middleware handler for protected route 
-	// r.Middlewares().Handler()
-
 	r.Use(cors.New(cors.Options{
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
@@ -91,17 +89,12 @@ func main() {
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser) 
     })
-	
-	// r.Post("/api/create-user", h.HandleCreateUser)
-
-	// // Protected routes
-	// r.Group(func(r chi.Router) {
-		
-	// })
 
 	// todo catch the error here
-	http.ListenAndServe(":8000", r)
-
+	if err := http.ListenAndServe(":"+c.ServerPort, r); err != nil {
+		slog.Error("failed to start server", "error", err)
+		os.Exit(1)
+	}
 }
 
 

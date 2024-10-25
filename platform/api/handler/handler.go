@@ -8,6 +8,8 @@ import (
 	"net/http"
     "os"
 
+    "github.com/auth0/go-jwt-middleware/v2"
+	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
@@ -21,18 +23,16 @@ func NewHandler(svc service.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-
 type CreateUserReq struct {
 	User  service.User `json:"user"`
 	Secret string `json:"secret"`
 }
+
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Fetching user")
-    customClaims, ok := r.Context().Value("user").(*middleware.CustomClaims)
-    if !ok {
-        http.Error(w, "Failed to get user claims", http.StatusInternalServerError)
-        return
-    }
+    token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+
+    customClaims := token.CustomClaims.(*middleware.CustomClaims)
 
     user, err := h.svc.GetUserByEmail(r.Context(), customClaims.Email)
     if err != nil {
@@ -65,8 +65,6 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    slog.Info("user", "company_name", reqBody.User.CompanyName, "email", reqBody.User.Email)
-
     // Create the user
     userID, err := h.svc.CreateUser(r.Context(), &reqBody.User)
     if err != nil {
@@ -82,7 +80,6 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
 	userId := r.Context().Value("user_id").(string)
-
 	searchTerm := r.URL.Query().Get("search")
 
 	invoices, err := h.svc.FetchInvoices(r.Context(), userId, searchTerm)

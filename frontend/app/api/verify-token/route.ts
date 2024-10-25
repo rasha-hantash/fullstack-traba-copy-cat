@@ -16,10 +16,7 @@ export async function POST(request: Request) {
     }
 
     const decodedToken = await verifyAndDecodeSessionToken(token)
-    console.log("decodedToken", decodedToken)
-    
     return NextResponse.json(decodedToken, { status: 200 })
-    
   } catch (error) {
     console.log("error", error)
     return NextResponse.json(

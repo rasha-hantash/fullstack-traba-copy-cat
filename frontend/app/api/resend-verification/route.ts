@@ -17,7 +17,6 @@ export async function POST(request: Request) {
 
     // Get a fresh management token
     const managementToken = await getManagementToken();
-    // console.log("managementToken", managementToken);
     console.log("provider", payload.identity.provider);
 
     const domain = process.env.AUTH0_ISSUER_BASE_URL;
@@ -31,16 +30,14 @@ export async function POST(request: Request) {
         user_id: payload.user_id,
         client_id: process.env.AUTH0_CLIENT_ID,
         identity: {
-          user_id: "6719b758b1b0781f782be1ff",
+          user_id: payload.identity.user_id,
           provider: payload.identity.provider,
         }
       })
     });
 
     if (!response.ok) {
-
       const error = await response.json();
-      console.log("error", error);
       return NextResponse.json({ error: error.message }, { status: response.status });
     }
 
