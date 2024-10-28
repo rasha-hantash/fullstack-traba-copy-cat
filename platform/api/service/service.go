@@ -110,8 +110,6 @@ func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 
 func (s *service) GetUserByID(ctx context.Context, userID string) (*User, error) {
 	var user User
-
-	slog.Info(userID)
 	err := s.db.QueryRowContext(ctx, `
 	               SELECT id, first_name, last_name, phone_number
 	               FROM users 

@@ -1,10 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION citext;
 
 CREATE TABLE users (
     id VARCHAR(255) PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL, -- todo make this unique
+    email citext NOT NULL UNIQUE, -- todo make this unique
     phone_number VARCHAR(255) NOT NULL,
     company_name VARCHAR(255) NOT NULL,
     created_by VARCHAR(255) NOT NULL,

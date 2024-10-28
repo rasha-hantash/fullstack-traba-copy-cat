@@ -13,7 +13,7 @@ interface Invoice {
   start_date: string;
   end_date: string;
   status: string;
-  shifts_filled: string;
+  invoice_name: string;
 }
 
 export default function Invoices() {
@@ -74,7 +74,7 @@ export default function Invoices() {
                 End Date
               </th>
               <th scope="col" className="flex items-center dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500">
-                Total Shifts
+                Invoice Description
               </th>
               <th scope="col" className="dark:text-white py-1.5 px-3 text-left text-sm font-semibold text-gray-500">
                 Invoice Amount
@@ -97,7 +97,7 @@ export default function Invoices() {
                   {formatDate(invoice.end_date)}
                 </td>
                 <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
-                  {invoice.shifts_filled}
+                  {invoice.invoice_name}
                 </td>
                 <td className="dark:text-white whitespace-nowrap px-3 py-1.5 text-sm text-gray-900">
                   {formatCurrency(invoice.invoice_amount)}
