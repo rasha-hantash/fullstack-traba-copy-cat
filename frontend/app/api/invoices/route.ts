@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const session = await getSession();
 
-    const response = await fetch('http://localhost:8000/api/user', {
+    const response = await fetch('http://localhost:8000/api/invoices', {
       credentials: 'include',  // Add this line
       headers: {
         'Authorization': `Bearer ${session?.accessToken}`,

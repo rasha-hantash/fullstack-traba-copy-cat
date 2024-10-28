@@ -12,11 +12,6 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import Sidebar from "./Sidebar";
 import Invoices from "./Invoices";
 
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-
 export default function MainContainer() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -44,8 +39,6 @@ export default function MainContainer() {
   return (
     <div className="flex-auto border lg:rounded-md lg:m-2 ">
       {/* todo: create a search bar component */}
-      {/* do i neet method.GET ?  */}
-
       <div
         className={`lg:hidden fixed inset-0 bg-black  transition-opacity duration-300 ease-in-out ${
           isSidebarOpen

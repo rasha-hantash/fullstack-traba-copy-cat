@@ -4,16 +4,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log/slog"
-    "fmt"
 	"net/http"
-    "os"
+	"os"
 
-    "github.com/auth0/go-jwt-middleware/v2"
+	"github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
+type role string 
+
+
+const EMPLOYER role = "rol_lz7KugKHb6tiTJVl"
 
 type Handler struct {
 	svc service.Service
@@ -29,12 +32,15 @@ type CreateUserReq struct {
 }
 
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Fetching user")
     token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
-
     customClaims := token.CustomClaims.(*middleware.CustomClaims)
+    if customClaims.Roles[0] != string(EMPLOYER) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
 
-    user, err := h.svc.GetUserByEmail(r.Context(), customClaims.Email)
+    // todo update this by getting the id 
+    user, err := h.svc.GetUserByID(r.Context(), customClaims.DBUserId)
     if err != nil {
         if err == sql.ErrNoRows {
             http.Error(w, "User not found", http.StatusNotFound)
@@ -46,6 +52,7 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
     }
 
 
+    slog.Info("User fetched successfully", "user_id", user.ID)
     sendJSONResponse(w, http.StatusOK, user)
 }
 
@@ -72,22 +79,36 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "failed to create user", http.StatusInternalServerError)
         return
     }
+    
+    type response struct {
+        UserID string `json:"user_id"`
+    }
+
+    payload := &response{
+        UserID: userID,
+    }
 
     // Return the user
-    sendJSONResponse(w, http.StatusOK, fmt.Sprintf(`{"user_id":"%s"}`, userID))
+    sendJSONResponse(w, http.StatusOK, payload)
 }
 
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
-	userId := r.Context().Value("user_id").(string)
+    token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+    customClaims := token.CustomClaims.(*middleware.CustomClaims)
+    if customClaims.Roles[0] != string(EMPLOYER) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
 	searchTerm := r.URL.Query().Get("search")
 
-	invoices, err := h.svc.FetchInvoices(r.Context(), userId, searchTerm)
+	invoices, err := h.svc.FetchInvoices(r.Context(), customClaims.DBUserId, searchTerm)
 	if err != nil {
 		slog.Error("failed to fetch invoices", "error", err)
 		http.Error(w, "failed to fetch invoices", http.StatusInternalServerError)
 		return
 	}
+
 	// Return the invoices
     sendJSONResponse(w, http.StatusOK, invoices)
 }

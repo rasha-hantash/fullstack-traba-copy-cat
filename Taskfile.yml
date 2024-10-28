@@ -31,3 +31,7 @@ tasks:
       cmds:
         - |
           cat platform/sql/seed/seed-db.sql | docker exec -i -e PGPASSWORD=your_password fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
+    local:db:shell:
+      desc: Open a shell to the database
+      cmds:
+        - docker exec -it fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba

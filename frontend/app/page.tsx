@@ -32,18 +32,17 @@ export default function Home() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
-        try {
-          // Get the access token from Auth0
-          // todo double check this and see if this is the most secure way of making auth0 api calls 
-          const response = await fetch('/api/user');
-          if (!response.ok) {
+        try { 
+          const userResp = await fetch('/api/user');
+          if (!userResp.ok) {
             throw new Error(
-              `Failed to fetch user data: ${response.status} ${response.statusText}`
+              `Failed to fetch user data: ${userResp.status} ${userResp.statusText}`
             );
           }
 
-          const data = await response.json();
-          setUserData(data);
+          const userData = await userResp.json();
+          setUserData(userData);
+
         } catch (err) {
           setFetchError(err instanceof Error ? err.message : 'An error occurred');
         }
