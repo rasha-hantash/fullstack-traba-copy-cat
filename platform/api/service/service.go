@@ -56,6 +56,16 @@ type Invoice struct {
     UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
+
+type InvoiceResponse struct {
+    ID            string    `json:"id" db:"id"`
+    StartDate     time.Time `json:"start_date" db:"start_date"`
+    EndDate       time.Time `json:"end_date" db:"end_date"`
+    InvoiceAmount float64      `json:"invoice_amount" db:"invoice_amount"`
+    Status        string    `json:"status" db:"status"`
+    ShiftsFilled      string    `json:"shifts_filled" db:"shifts_filled"`
+}
+
 func NewService(db *sql.DB) Service {
 	return &service{
 		db: db,
@@ -64,8 +74,9 @@ func NewService(db *sql.DB) Service {
 
 
 type Service interface {
-	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error)
+	FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]InvoiceResponse, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetUserByID(ctx context.Context, userID string) (*User, error)
 	CreateUser(ctx context.Context, user *User) (string, error)
 }
 
@@ -78,6 +89,7 @@ var _ Service = &service{}
 
 func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 	// create new ksuid for user 
+	fmt.Println("creating user")
 	userID := generateID(UserPrefix)
 	// todo: create onboarding flow to collect the following user information: first name, last name, email, phone_number
 	
@@ -127,16 +139,50 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, erro
 }
 
 
-func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]Invoice, error) {
+func (s *service) GetUserByID(ctx context.Context, userID string) (*User, error) {
+	var user User
+	
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, first_name, last_name, phone_number
+		FROM users 
+		WHERE id = $1`,
+		userID,
+	).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.PhoneNumber,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error fetching user with id %s: %w", userID, err)
+	}
+
+	return &user, nil
+}
+
+
+func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm string) ([]InvoiceResponse, error) {
     var query string
     var args []interface{}
-    var invoices []Invoice
+    var invoices []InvoiceResponse
 
     // Base query
     query = `
-        SELECT id, start_date, end_date, invoice_amount_cents, status, user_id, shift_id, invoice_name, created_at, updated_at
-        FROM invoices
-        WHERE user_id = $1
+        SELECT 
+			i.id,
+			i.invoice_amount,
+			s.start_date,
+			s.end_date,
+			i.status,
+			s.shifts_filled
+		FROM invoices i
+		JOIN shifts s ON i.shift_id = s.id
+		WHERE i.created_by = $1
+		AND s.created_by = $1;
     `
     args = append(args, userId)
 
@@ -155,24 +201,19 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 
     // Iterate over the rows
     for rows.Next() {
-        var inv Invoice
-        var amountCents int
+        var inv InvoiceResponse
         err := rows.Scan(
             &inv.ID,
+			&inv.InvoiceAmount,
             &inv.StartDate,
             &inv.EndDate,
-            &amountCents,
             &inv.Status,
-            &inv.UserID,
-            &inv.ShiftID,
-            &inv.InvoiceName,
-            &inv.CreatedAt,
-            &inv.UpdatedAt,
+			&inv.ShiftsFilled,
         )
         if err != nil {
             return nil, fmt.Errorf("error scanning invoice row: %w", err)
         }
-        inv.InvoiceAmount = float64(amountCents) / 100 // Convert cents to dollars
+        // inv.InvoiceAmount = float64(amountCents) / 100 // Convert cents to dollars
         invoices = append(invoices, inv)
     }
 
@@ -247,11 +288,15 @@ func generateInvoices(tx *sql.Tx, shiftID, employerID string) error {
 		invoiceID := generateID(InvoicePrefix)
 		randomShiftName := shiftNames[rand.Intn(len(shiftNames))]
 		randomAmount := rand.Intn(90001) + 10000 // Random number between 10000 and 100000
+		status := "paid"
+		if i%3 == 0 {
+			status = "unpaid"
+		}
 
 		_, err := tx.Exec(`
 			INSERT INTO invoices (id, invoice_amount, status, shift_id, invoice_name, created_by, updated_by)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, invoiceID, randomAmount, "pending", shiftID, randomShiftName, employerID)
+		`, invoiceID, randomAmount, status, shiftID, randomShiftName, employerID)
 		
 		if err != nil {
 			return fmt.Errorf("failed to insert invoice %d: %w", i+1, err)

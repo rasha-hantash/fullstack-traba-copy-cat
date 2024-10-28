@@ -13,16 +13,18 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 )
 
+// todo: look into when i would use https://{yourDomain}/.well-known/jwks.json
+
 // CustomClaims contains custom data we want from the token.
 type Role struct {
 	RoleID string `json:"role_id"`
-
 }
 
 type CustomClaims struct {
-	Scope         string   `json:"scope"`
-	Email         string   `json:"https://traba-staging.fs0ciety.dev/email"`
-	Roles         []string `json:"https://traba-staging.fs0ciety.dev/roles"`
+	Scope    string   `json:"scope"`
+	Email    string   `json:"https://traba-staging.fs0ciety.dev/email"`
+	DBUserId string   `json:"https://traba-staging.fs0ciety.dev/db_user_id"`
+	Roles    []string `json:"https://traba-staging.fs0ciety.dev/roles"`
 }
 
 // CustomClaims defines any custom data / claims wanted.
@@ -34,6 +36,7 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 
 // EnsureValidToken is a middleware that will check the validity of our JWT.
 func EnsureValidToken() func(next http.Handler) http.Handler {
+	log.Println("ensuring valid token")
 	issuerURL, err := url.Parse(os.Getenv("AUTH0_ISSUER_BASE_URL"))
 	if err != nil {
 		log.Fatalf("Failed to parse the issuer url: %v", err)

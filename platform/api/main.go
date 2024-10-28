@@ -74,21 +74,22 @@ func main() {
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
 		AllowedOrigins: []string{
+			"*",
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
 			// "https://staging.getclaimclam.com",
 			// "https://app.getclaimclam.com",
 		},
-		Debug: true,
+		// Debug: true,
 	}).Handler)
-
-	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
-
     r.Group(func(r chi.Router) {
         r.Use(middleware.EnsureValidToken())
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser) 
+		r.Get("/api/user-id", h.HandleGetUserId) 
     })
+
+	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
 	// todo catch the error here
 	if err := http.ListenAndServe(":"+c.ServerPort, r); err != nil {
