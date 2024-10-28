@@ -3,7 +3,6 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,6 +13,10 @@ import (
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
 )
 
+type role string 
+
+
+const EMPLOYER role = "rol_lz7KugKHb6tiTJVl"
 
 type Handler struct {
 	svc service.Service
@@ -28,39 +31,13 @@ type CreateUserReq struct {
 	Secret string `json:"secret"`
 }
 
-func (h *Handler) HandleGetUserId(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Fetching user")
-    token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
-
-    customClaims := token.CustomClaims.(*middleware.CustomClaims)
-
-    user, err := h.svc.GetUserByEmail(r.Context(), customClaims.Email)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            http.Error(w, "User not found", http.StatusNotFound)
-            return
-        }
-        slog.Error("failed to get user", "error", err)
-        http.Error(w, "failed to get user", http.StatusInternalServerError)
-        return
-    }
-
-    response := struct {
-        UserID string `json:"db_user_id"`
-    }{
-        UserID: user.ID,
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
-}
-
-
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
     token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
     customClaims := token.CustomClaims.(*middleware.CustomClaims)
-    // todo if roles[0] != rol_lz7KugKHb6tiTJVl, then return unauthorized
-    // log.Println(token.RegisteredClaims)
+    if customClaims.Roles[0] != string(EMPLOYER) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
 
     // todo update this by getting the id 
     user, err := h.svc.GetUserByID(r.Context(), customClaims.DBUserId)
@@ -75,13 +52,13 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
     }
 
 
+    slog.Info("User fetched successfully", "user_id", user.ID)
     sendJSONResponse(w, http.StatusOK, user)
 }
 
 func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
     // Get the user from the context
     var reqBody CreateUserReq
-    log.Print("Creating user")
     err := json.NewDecoder(r.Body).Decode(&reqBody)
     if err != nil {
         slog.Error("failed to decode user", "error", err)
@@ -118,17 +95,20 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
     token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
-
     customClaims := token.CustomClaims.(*middleware.CustomClaims)
-    log.Println("roles roles", customClaims.Roles)
+    if customClaims.Roles[0] != string(EMPLOYER) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
 	searchTerm := r.URL.Query().Get("search")
 
-	invoices, err := h.svc.FetchInvoices(r.Context(), customClaims.Email, searchTerm)
+	invoices, err := h.svc.FetchInvoices(r.Context(), customClaims.DBUserId, searchTerm)
 	if err != nil {
 		slog.Error("failed to fetch invoices", "error", err)
 		http.Error(w, "failed to fetch invoices", http.StatusInternalServerError)
 		return
 	}
+
 	// Return the invoices
     sendJSONResponse(w, http.StatusOK, invoices)
 }
