@@ -2,12 +2,24 @@
 import { getSession  } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Get the search query from URL
+    const url = new URL(request.url);
+    const searchQuery = url.searchParams.get('search') || '';
+    
     const session = await getSession();
 
-    const response = await fetch('http://localhost:8000/api/invoices', {
-      credentials: 'include',  // Add this line
+    // Construct the backend URL with search parameter
+    const backendUrl = new URL('http://localhost:8000/api/invoices');
+    if (searchQuery) {
+      backendUrl.searchParams.set('search', searchQuery);
+    }
+
+    console.log(backendUrl.toString());
+
+    const response = await fetch(backendUrl.toString(), {
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${session?.accessToken}`,
         'Content-Type': 'application/json',
@@ -19,13 +31,29 @@ export async function GET() {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+
+    // Return the response with proper headers
+    return new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      status: 200,
+    });
 
   } catch (error) {
     console.error('API route error:', error);
-    return NextResponse.json(
-      { error: `Failed to fetch user data` }, 
-      { status: 500 }
+    
+    // Return a proper error response
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        status: error instanceof Error && error.message.includes('status: 401') ? 401 : 500,
+      }
     );
   }
 }

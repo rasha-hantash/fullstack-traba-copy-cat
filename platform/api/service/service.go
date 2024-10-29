@@ -136,10 +136,10 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 	var query string
 	var args []interface{}
 	var invoices []InvoiceResponse
-
+	
 	// Base query
 	query = `
-        SELECT 
+		SELECT 
 			i.id,
 			i.invoice_amount,
 			s.start_date,
@@ -149,15 +149,17 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 		FROM invoices i
 		JOIN shifts s ON i.shift_id = s.id
 		WHERE i.created_by = $1
-		AND s.created_by = $1;
-    `
+		AND s.created_by = $1`  // Removed the semicolon here
 	args = append(args, userId)
-
+	
 	// If search term is provided, add it to the query
 	if searchTerm != "" {
-		query += " AND invoice_name ILIKE $2"
+		query +=  ` AND invoice_name ILIKE $2`
 		args = append(args, "%"+searchTerm+"%")
 	}
+	
+	// Add the semicolon at the very end if needed
+	query += `;`
 
 	// Execute the query
 	rows, err := s.db.Query(query, args...)

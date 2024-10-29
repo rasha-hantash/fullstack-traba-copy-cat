@@ -1,8 +1,4 @@
-import { useState, useEffect } from "react";
 import {
-  ListFilter,
-  ArrowUpRight,
-  SquarePen,
   Receipt,
   RefreshCcw,
 } from "lucide-react";
@@ -16,29 +12,12 @@ interface Invoice {
   invoice_name: string;
 }
 
-export default function Invoices() {
-  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+interface InvoicesProps {
+  invoices: Invoice[] | null;
+  isLoading: boolean;
+}
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const invoiceResp = await fetch('/api/invoices');
-        if (!invoiceResp.ok) {
-          throw new Error(
-            `Failed to fetch invoices data: ${invoiceResp.status} ${invoiceResp.statusText}`
-          );
-        }
-
-        const invoiceData = await invoiceResp.json();
-        setInvoices(invoiceData);
-      } catch (err) {
-        setFetchError(err instanceof Error ? err.message : 'An error occurred');
-      }
-    };
-    fetchUserData();
-  }, []);
-
+export default function Invoices({ invoices, isLoading }: InvoicesProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -49,13 +28,13 @@ export default function Invoices() {
       currency: 'USD'
     }).format(amount);
   };
-  
-  if (fetchError) {
-    return <div className="text-red-500 p-4">Error: {fetchError}</div>;
+
+  if (isLoading) {
+    return <div className="p-4">Loading...</div>;
   }
 
   if (!invoices) {
-    return <div className="p-4">Loading...</div>;
+    return <div className="p-4">No invoices found</div>;
   }
 
   return (
