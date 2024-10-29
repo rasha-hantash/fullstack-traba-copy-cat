@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect } from "react";
 import {
   Search,
@@ -12,11 +11,85 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import Sidebar from "./Sidebar";
 import Invoices from "./Invoices";
 
+interface Invoice {
+  id: string;
+  invoice_amount: number;
+  start_date: string;
+  end_date: string;
+  status: string;
+  invoice_name: string;
+}
+
 export default function MainContainer() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [invoiceData, setInvoiceData] = useState<Invoice[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handle search and API call
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    setError(null);
+    
+    // Clear existing timeout
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
+    // Set new timeout to debounce API calls
+    const timeout = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/invoices?search=${encodeURIComponent(query)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setInvoiceData(data);
+        
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300); // 300ms debounce delay
+
+    setDebounceTimeout(timeout);
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/invoices');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setInvoiceData(data);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
 
   const toggleSidebar = () => {
-    console.log(isSidebarOpen);
     setIsSidebarOpen(!isSidebarOpen);
   };
 
@@ -37,10 +110,9 @@ export default function MainContainer() {
   }, []);
 
   return (
-    <div className="flex-auto border lg:rounded-md lg:m-2 ">
-      {/* todo: create a search bar component */}
+    <div className="flex-auto border lg:rounded-md lg:m-2">
       <div
-        className={`lg:hidden fixed inset-0 bg-black  transition-opacity duration-300 ease-in-out ${
+        className={`lg:hidden fixed inset-0 bg-black transition-opacity duration-300 ease-in-out ${
           isSidebarOpen
             ? "opacity-5 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -48,16 +120,15 @@ export default function MainContainer() {
         onClick={toggleSidebar}
       />
 
-      {/* Sidebar */}
       <div
         className={`lg:hidden z-50 fixed top-0 left-0 h-full w-64 bg-white transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-            <Sidebar />
+        <Sidebar />
       </div>
 
-      <div className="px-4 flex  border-b items-center">
+      <div className="px-4 flex border-b items-center">
         <div className="w-full">
           <form
             action="#"
@@ -77,6 +148,8 @@ export default function MainContainer() {
             <input
               id="search-field"
               name="search"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search your invoices..."
               className="h-full w-full border-0 py-0 pl-2 pr-0 text-gray-900 placeholder:text-gray-600 focus:ring-0 text-sm"
             />
@@ -88,10 +161,9 @@ export default function MainContainer() {
         </div>
       </div>
 
-      {/* Subheader */}
       <div className="flex items-center justify-between px-4 py-1 border-b">
         <div>
-          <h2 className="text-sm  text-gray-900">All invoices</h2>
+          <h2 className="text-sm text-gray-900">All invoices</h2>
         </div>
         <div className="flex">
           <button className="hover:text-black text-gray-600 flex items-center text-xs">
@@ -102,13 +174,21 @@ export default function MainContainer() {
             <FileDown className="py-1" />
             Export
           </button>
-          <button className="ml-1 flex shrink-0 items-center text-xs shadow-sm border hover:bg-gray-100  rounded-md">
+          <button className="ml-1 flex shrink-0 items-center text-xs shadow-sm border hover:bg-gray-100 rounded-md">
             <SquarePen className="py-1" />
             <span className="pr-1">Create invoice</span>
           </button>
         </div>
       </div>
-      <Invoices />
+
+      {error ? (
+        <div className="text-red-500 p-4">Error: {error}</div>
+      ) : (
+        <Invoices 
+          invoices={invoiceData} 
+          isLoading={isLoading} 
+        />
+      )}
     </div>
   );
 }
