@@ -38,7 +38,7 @@ export default function VerifyEmailPage() {
         setIdentityAuth0UserId(verified.identity.user_id);
         setProvider(verified.identity.provider);
       } catch (err) {
-        setError('Invalid or expired token');
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         setEmail(null);
       }
     };

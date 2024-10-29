@@ -25,11 +25,9 @@ interface EmailVerificationPageProps {
   auth0UserId: string;
   identityAuth0UserId: string;
   provider: string;
-  // onResendVerification?: () => Promise<void>;
 }
 
 const EmailVerificationPage = ({ email, auth0UserId, identityAuth0UserId, provider}: EmailVerificationPageProps) => {
-  console.log("identityAuth0UserId", identityAuth0UserId);
   const [isResending, setIsResending] = useState(false);
   const [showResendSuccess, setShowResendSuccess] = useState(false);
 
@@ -48,12 +46,10 @@ const EmailVerificationPage = ({ email, auth0UserId, identityAuth0UserId, provid
         },
       };
 
-      console.log("payload", payload);
-
       await resendVerificationEmail(payload);
       setShowResendSuccess(true);
     } catch (error) {
-      // Error handling could be added here
+      throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsResending(false);
     }
@@ -117,7 +113,7 @@ const EmailVerificationPage = ({ email, auth0UserId, identityAuth0UserId, provid
           </div>
 
           <div className="mt-4 text-center">
-            <span className=" text-sm text-gray-600">Didn't receive the email? </span>
+          <span className="text-sm text-gray-600">Didn&apos;t receive the email? </span>
             <button
               onClick={handleResend}
               disabled={isResending}

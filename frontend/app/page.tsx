@@ -1,27 +1,14 @@
 'use client'
 import Sidebar from "@/components/Sidebar";
 import MainContainer from "@/components/MainContainer";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { getAccessToken } from '@auth0/nextjs-auth0';
 import { useRouter } from 'next/navigation';
-
-
-interface UserData {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  company_name: string;
-  phone_number: string;
-}
 
 
 export default function Home() {
   const { user, error, isLoading } = useUser();
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -29,31 +16,9 @@ export default function Home() {
     }
   }, [isLoading, user, router]);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (user) {
-        try { 
-          const userResp = await fetch('/api/user');
-          if (!userResp.ok) {
-            throw new Error(
-              `Failed to fetch user data: ${userResp.status} ${userResp.statusText}`
-            );
-          }
-
-          const userData = await userResp.json();
-          setUserData(userData);
-
-        } catch (err) {
-          setFetchError(err instanceof Error ? err.message : 'An error occurred');
-        }
-      }
-    };
-    fetchUserData();
-  }, [user]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>{error.message}</div>;
-
   if (!user) return null; // This prevents the main content from flashing before redirect
 
 

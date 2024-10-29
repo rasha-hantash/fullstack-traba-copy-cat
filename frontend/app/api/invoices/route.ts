@@ -1,6 +1,5 @@
 // app/api/user/route.ts
 import { getSession  } from '@auth0/nextjs-auth0';
-import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
