@@ -16,8 +16,6 @@ export async function GET(request: Request) {
       backendUrl.searchParams.set('search', searchQuery);
     }
 
-    console.log(backendUrl.toString());
-
     const response = await fetch(backendUrl.toString(), {
       credentials: 'include',
       headers: {
