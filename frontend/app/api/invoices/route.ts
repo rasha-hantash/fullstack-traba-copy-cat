@@ -1,13 +1,16 @@
 // app/api/user/route.ts
-import { getSession  } from '@auth0/nextjs-auth0';
+import { getAccessToken } from '@auth0/nextjs-auth0';
+
+export const dynamic = 'force-dynamic';
+
 
 export async function GET(request: Request) {
   try {
     // Get the search query from URL
-    const url = new URL(request.url);
-    const searchQuery = url.searchParams.get('search') || '';
+    const { searchParams } = new URL(request.url);
+    const searchQuery = searchParams.get('search') || '';
     
-    const session = await getSession();
+    const token = await getAccessToken()
 
     // Construct the backend URL with search parameter
     const backendUrl = new URL('http://localhost:8000/api/invoices');
@@ -18,7 +21,7 @@ export async function GET(request: Request) {
     const response = await fetch(backendUrl.toString(), {
       credentials: 'include',
       headers: {
-        'Authorization': `Bearer ${session?.accessToken}`,
+        'Authorization': `Bearer ${token?.accessToken}`,
         'Content-Type': 'application/json',
       },
     });
