@@ -98,8 +98,6 @@ func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 		return "", fmt.Errorf("error creating user: %w", err)
 	}
 
-	slog.Info("User created successfully", "user_id", userID)
-
 	err = s.initializeData(userID)
 	if err != nil {
 		return "", fmt.Errorf("error initializing data: %w", err)

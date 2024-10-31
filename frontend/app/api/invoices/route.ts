@@ -1,5 +1,5 @@
 // app/api/user/route.ts
-import { getAccessToken } from '@auth0/nextjs-auth0';
+import auth from '@/utils/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const searchQuery = searchParams.get('search') || '';
     
-    const token = await getAccessToken()
-
+    const token = await auth.getAccessToken()
     // Construct the backend URL with search parameter
     const backendUrl = new URL('http://localhost:8000/api/invoices');
     if (searchQuery) {
@@ -25,6 +24,7 @@ export async function GET(request: Request) {
         'Content-Type': 'application/json',
       },
     });
+    
 
     if (!response.ok) {
       throw new Error(`Backend responded with status: ${response.status}`);

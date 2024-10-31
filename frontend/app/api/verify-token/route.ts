@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     const decodedToken = await verifyAndDecodeSessionToken(token)
     return NextResponse.json(decodedToken, { status: 200 })
   } catch (error) {
-    console.log("error", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error occurred' },
       { status: 401 }

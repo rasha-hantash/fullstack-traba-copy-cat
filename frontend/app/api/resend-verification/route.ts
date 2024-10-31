@@ -17,7 +17,6 @@ export async function POST(request: Request) {
 
     // Get a fresh management token
     const managementToken = await getManagementToken();
-    console.log("provider", payload.identity.provider);
 
     const domain = process.env.AUTH0_ISSUER_BASE_URL;
     const response = await fetch(`${domain}/api/v2/jobs/verification-email`, {

@@ -51,8 +51,6 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-
-    slog.Info("User fetched successfully", "user_id", user.ID)
     sendJSONResponse(w, http.StatusOK, user)
 }
 
@@ -94,8 +92,11 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleFetchInvoices (w http.ResponseWriter, r *http.Request) {
 	// Get the user from the context
+    slog.Info("fetching invoices")
     token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
     customClaims := token.CustomClaims.(*middleware.CustomClaims)
+
+    slog.Info("fetching invoices", "user_id", customClaims)
     if customClaims.Roles[0] != string(EMPLOYER) {
         http.Error(w, "Unauthorized", http.StatusUnauthorized)
         return

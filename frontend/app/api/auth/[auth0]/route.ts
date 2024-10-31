@@ -1,13 +1,12 @@
-// import { handleAuth } from '@auth0/nextjs-auth0';
+import auth from '@/utils/auth';
+// import { NextRequest } from 'next/server';
+
+// Initialize Auth0 instance
+// const auth0Promise = initializeAuth0();
 
 
-// export const GET = handleAuth();
-
-// pages/api/auth/[auth0].js
-import { handleAuth, handleLogin } from '@auth0/nextjs-auth0';
-
-export const GET = handleAuth({
-  login: handleLogin({
+export const GET = auth.handleAuth({
+  login: auth.handleLogin({
     authorizationParams: {
       audience: 'https://traba-api/',
       // Add the `offline_access` scope to also get a Refresh Token

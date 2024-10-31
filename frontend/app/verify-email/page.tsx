@@ -22,7 +22,7 @@ function VerificationContent() {
       }
 
       try {
-        const response = await fetch('http://localhost:3000/api/verify-token', {
+        const response = await fetch('/api/verify-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

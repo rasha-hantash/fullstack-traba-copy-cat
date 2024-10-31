@@ -12,6 +12,12 @@ const nextConfig = {
       dangerouslyAllowSVG: true,
       contentDispositionType: 'attachment',
       contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    },
+    serverRuntimeConfig: {
+      // Will only be available on the server side
+      AWS_REGION: process.env.AWS_REGION,
+      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     }
   };
   

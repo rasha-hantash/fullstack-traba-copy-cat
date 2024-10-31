@@ -44,6 +44,8 @@ export default function Sidebar() {
                 alt="Your Company"
                 src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600"
                 className="h-8 w-auto"
+                width={32}
+                height={32}
               />
             </div>
             <ul role="list" className="mt-2 px-4">

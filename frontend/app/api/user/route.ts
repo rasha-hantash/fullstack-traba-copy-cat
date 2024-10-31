@@ -1,12 +1,12 @@
 // app/api/user/route.ts
-import { getAccessToken  } from '@auth0/nextjs-auth0';
+import auth from '@/utils/auth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const token = await getAccessToken();
+    const token = await auth.getAccessToken();
 
     const response = await fetch('http://localhost:8000/api/user', {
       credentials: 'include',  // Add this line
