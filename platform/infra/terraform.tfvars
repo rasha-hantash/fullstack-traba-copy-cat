@@ -1,0 +1,6 @@
+aws_region = "us-east-1"
+environment = "prod"
+domain_name = "fs0ceity.dev"
+auth0_domain = "your-tenant.auth0.com"
+frontend_container_image = "your-frontend-image:latest"
+backend_container_image = "your-backend-image:latest"
