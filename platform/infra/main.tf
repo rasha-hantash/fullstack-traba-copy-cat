@@ -20,16 +20,14 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "prod"
+locals {
+  environment = terraform.workspace
 }
 
 variable "domain_name" {
-  description = "Domain name for the application"
+  description = "Domain name for the traba application"
   type        = string
-  default     = "fs0ceity.dev"
+  default     = "traba-${local.environment}.fs0ceity.dev"
 }
 
 variable "availability_zone" {
@@ -78,13 +76,13 @@ variable "auth0_domain" {
 }
 
 variable "health_check_path_frontend" {
-  description = "Health check path for frontend service"
+  description = "Health check path for frontend traba service"
   type        = string
   default     = "/"
 }
 
 variable "health_check_path_backend" {
-  description = "Health check path for backend service"
+  description = "Health check path for backend traba service"
   type        = string
   default     = "/health"
 }
@@ -96,8 +94,8 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name        = "${var.environment}-vpc"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-vpc"
+    Environment = local.environment
   }
 }
 
@@ -108,8 +106,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.environment}-public"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-public"
+    Environment = local.environment
   }
 }
 
@@ -119,8 +117,8 @@ resource "aws_subnet" "private" {
   availability_zone = var.availability_zone
 
   tags = {
-    Name        = "${var.environment}-private"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-private"
+    Environment = local.environment
   }
 }
 
@@ -128,16 +126,16 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name        = "${var.environment}-igw"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-igw"
+    Environment = local.environment
   }
 }
 
 resource "aws_eip" "nat" {
   domain = "vpc"
   tags = {
-    Name        = "${var.environment}-nat-eip"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-nat-eip"
+    Environment = local.environment
   }
 }
 
@@ -146,8 +144,8 @@ resource "aws_nat_gateway" "main" {
   subnet_id     = aws_subnet.public.id
 
   tags = {
-    Name        = "${var.environment}-nat"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-nat"
+    Environment = local.environment
   }
 }
 
@@ -160,8 +158,8 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name        = "${var.environment}-public-rt"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-public-rt"
+    Environment = local.environment
   }
 }
 
@@ -174,8 +172,8 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name        = "${var.environment}-private-rt"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-private-rt"
+    Environment = local.environment
   }
 }
 
@@ -191,7 +189,7 @@ resource "aws_route_table_association" "private" {
 
 # Security Groups
 resource "aws_security_group" "frontend_alb" {
-  name_prefix = "${var.environment}-frontend-alb-sg"
+  name_prefix = "${local.environment}-traba-frontend-alb-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -216,13 +214,13 @@ resource "aws_security_group" "frontend_alb" {
   }
 
   tags = {
-    Name        = "${var.environment}-frontend-alb-sg"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-frontend-alb-sg"
+    Environment = local.environment
   }
 }
 
 resource "aws_security_group" "backend_alb" {
-  name_prefix = "${var.environment}-backend-alb-sg"
+  name_prefix = "${local.environment}-traba-backend-alb-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -240,13 +238,13 @@ resource "aws_security_group" "backend_alb" {
   }
 
   tags = {
-    Name        = "${var.environment}-backend-alb-sg"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-backend-alb-sg"
+    Environment = local.environment
   }
 }
 
 resource "aws_security_group" "frontend" {
-  name_prefix = "${var.environment}-frontend-sg"
+  name_prefix = "${local.environment}-traba-frontend-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -264,13 +262,13 @@ resource "aws_security_group" "frontend" {
   }
 
   tags = {
-    Name        = "${var.environment}-frontend-sg"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-frontend-sg"
+    Environment = local.environment
   }
 }
 
 resource "aws_security_group" "backend" {
-  name_prefix = "${var.environment}-backend-sg"
+  name_prefix = "${local.environment}-traba-backend-sg"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -288,14 +286,14 @@ resource "aws_security_group" "backend" {
   }
 
   tags = {
-    Name        = "${var.environment}-backend-sg"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-backend-sg"
+    Environment = local.environment
   }
 }
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
-  name = "${var.environment}-cluster"
+  name = "${local.environment}-traba-cluster"
 
   setting {
     name  = "containerInsights"
@@ -303,13 +301,13 @@ resource "aws_ecs_cluster" "main" {
   }
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
 # IAM Roles
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.environment}-ecs-task-execution-role"
+  name = "${local.environment}-traba-ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -325,7 +323,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
@@ -336,20 +334,20 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 
 # Frontend Resources
 resource "aws_lb" "frontend" {
-  name               = "${var.environment}-frontend-alb"
+  name               = "${local.environment}-traba-frontend-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.frontend_alb.id]
   subnets           = [aws_subnet.public.id]
 
   tags = {
-    Name        = "${var.environment}-frontend-alb"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-frontend-alb"
+    Environment = local.environment
   }
 }
 
 resource "aws_lb_target_group" "frontend" {
-  name        = "${var.environment}-frontend-tg"
+  name        = "${local.environment}-traba-frontend-tg"
   port        = var.frontend_container_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -368,7 +366,7 @@ resource "aws_lb_target_group" "frontend" {
   }
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
@@ -402,7 +400,7 @@ resource "aws_lb_listener" "frontend_http" {
 }
 
 resource "aws_ecs_task_definition" "frontend" {
-  family                   = "${var.environment}-frontend"
+  family                   = "${local.environment}-traba-frontend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -422,7 +420,7 @@ resource "aws_ecs_task_definition" "frontend" {
       environment = [
         {
           name  = "NODE_ENV"
-          value = var.environment
+          value = local.environment
         },
         {
           name  = "BACKEND_URL"
@@ -445,12 +443,12 @@ resource "aws_ecs_task_definition" "frontend" {
   ])
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
 resource "aws_ecs_service" "frontend" {
-  name            = "${var.environment}-frontend"
+  name            = "${local.environment}-traba-frontend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = 1
@@ -471,26 +469,26 @@ resource "aws_ecs_service" "frontend" {
   depends_on = [aws_lb_listener.frontend_https]
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
 # Backend Resources
 resource "aws_lb" "backend" {
-  name               = "${var.environment}-backend-alb"
+  name               = "${local.environment}-traba-backend-alb"
   internal           = true
   load_balancer_type = "application"
   security_groups    = [aws_security_group.backend_alb.id]
   subnets           = [aws_subnet.public.id]
 
   tags = {
-    Name        = "${var.environment}-backend-alb"
-    Environment = var.environment
+    Name        = "${local.environment}-traba-backend-alb"
+    Environment = local.environment
   }
 }
 
 resource "aws_lb_target_group" "backend" {
-  name        = "${var.environment}-backend-tg"
+  name        = "${local.environment}-traba-backend-tg"
   port        = var.backend_container_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -509,7 +507,7 @@ resource "aws_lb_target_group" "backend" {
   }
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
@@ -529,7 +527,7 @@ resource "aws_lb_listener" "backend_https" {
 # Continuing with Backend Resources...
 
 resource "aws_ecs_task_definition" "backend" {
-  family                   = "${var.environment}-backend"
+  family                   = "${local.environment}-traba-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -549,7 +547,7 @@ resource "aws_ecs_task_definition" "backend" {
       environment = [
         {
           name  = "NODE_ENV"
-          value = var.environment
+          value = local.environment
         },
         {
           name  = "AUTH0_DOMAIN"
@@ -568,12 +566,12 @@ resource "aws_ecs_task_definition" "backend" {
   ])
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
 resource "aws_ecs_service" "backend" {
-  name            = "${var.environment}-backend"
+  name            = "${local.environment}-traba-backend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.backend.arn
   desired_count   = 1
@@ -594,7 +592,7 @@ resource "aws_ecs_service" "backend" {
   depends_on = [aws_lb_listener.backend_https]
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
@@ -605,7 +603,7 @@ resource "aws_acm_certificate" "main" {
   validation_method        = "DNS"
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 
   lifecycle {
@@ -666,20 +664,20 @@ resource "aws_route53_record" "backend" {
 
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "frontend" {
-  name              = "/ecs/${var.environment}-frontend"
+  name              = "/ecs/${local.environment}-traba-frontend"
   retention_in_days = 30
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 
 resource "aws_cloudwatch_log_group" "backend" {
-  name              = "/ecs/${var.environment}-backend"
+  name              = "/ecs/${local.environment}-traba-backend"
   retention_in_days = 30
 
   tags = {
-    Environment = var.environment
+    Environment = local.environment
   }
 }
 

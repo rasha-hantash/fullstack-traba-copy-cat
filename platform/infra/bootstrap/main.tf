@@ -27,7 +27,7 @@ resource "aws_ecr_repository" "traba" {
 
 # Create AWS Secrets Manager secret for frontend config
 resource "aws_secretsmanager_secret" "frontend_config" {
-  name = "${local.environment}-frontend-config"
+  name = "${local.environment}-traba-frontend-config"
 
   tags = {
     Environment = local.environment
@@ -37,7 +37,7 @@ resource "aws_secretsmanager_secret" "frontend_config" {
 
 # Create AWS Secrets Manager secret for backend config
 resource "aws_secretsmanager_secret" "backend_config" {
-  name = "${local.environment}-backend-config"
+  name = "${local.environment}-traba-backend-config"
   tags = {
     Environment = local.environment
     Service     = "backend"
