@@ -22,12 +22,13 @@ variable "aws_region" {
 
 locals {
   environment = terraform.workspace
+  create_resources = local.environment == "staging" || local.environment == "prod" ? 1 : 0
 }
 
 variable "domain_name" {
   description = "Domain name for the traba application"
   type        = string
-  default     = "traba-${local.environment}.fs0ceity.dev"
+  default     = "traba-${local.environment}.fs0ciety.dev"
 }
 
 variable "availability_zone" {
@@ -89,6 +90,8 @@ variable "health_check_path_backend" {
 
 # VPC and Network Configuration
 resource "aws_vpc" "main" {
+  count = local.create_resources
+
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -100,6 +103,8 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "public" {
+  count = local.create_resources
+
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = var.availability_zone
@@ -112,6 +117,8 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
+  count = local.create_resources
+
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = var.availability_zone
@@ -123,6 +130,8 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_internet_gateway" "main" {
+  count = local.create_resources
+
   vpc_id = aws_vpc.main.id
 
   tags = {
@@ -140,6 +149,8 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "main" {
+  count = local.create_resources
+
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public.id
 
@@ -150,6 +161,8 @@ resource "aws_nat_gateway" "main" {
 }
 
 resource "aws_route_table" "public" {
+  count = local.create_resources
+
   vpc_id = aws_vpc.main.id
 
   route {
@@ -164,6 +177,8 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table" "private" {
+  count = local.create_resources
+
   vpc_id = aws_vpc.main.id
 
   route {
@@ -178,6 +193,8 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "public" {
+  count = local.create_resources
+
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
@@ -189,6 +206,8 @@ resource "aws_route_table_association" "private" {
 
 # Security Groups
 resource "aws_security_group" "frontend_alb" {
+  count = local.create_resources
+
   name_prefix = "${local.environment}-traba-frontend-alb-sg"
   vpc_id      = aws_vpc.main.id
 
@@ -220,6 +239,8 @@ resource "aws_security_group" "frontend_alb" {
 }
 
 resource "aws_security_group" "backend_alb" {
+  count = local.create_resources
+
   name_prefix = "${local.environment}-traba-backend-alb-sg"
   vpc_id      = aws_vpc.main.id
 
@@ -244,6 +265,8 @@ resource "aws_security_group" "backend_alb" {
 }
 
 resource "aws_security_group" "frontend" {
+  count = local.create_resources
+
   name_prefix = "${local.environment}-traba-frontend-sg"
   vpc_id      = aws_vpc.main.id
 
@@ -268,6 +291,8 @@ resource "aws_security_group" "frontend" {
 }
 
 resource "aws_security_group" "backend" {
+  count = local.create_resources
+
   name_prefix = "${local.environment}-traba-backend-sg"
   vpc_id      = aws_vpc.main.id
 
@@ -293,6 +318,8 @@ resource "aws_security_group" "backend" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
+  count = local.create_resources
+
   name = "${local.environment}-traba-cluster"
 
   setting {
@@ -307,6 +334,8 @@ resource "aws_ecs_cluster" "main" {
 
 # IAM Roles
 resource "aws_iam_role" "ecs_task_execution_role" {
+  count = local.create_resources
+
   name = "${local.environment}-traba-ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
@@ -328,12 +357,16 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  count = local.create_resources
+
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 # Frontend Resources
 resource "aws_lb" "frontend" {
+  count = local.create_resources
+
   name               = "${local.environment}-traba-frontend-alb"
   internal           = false
   load_balancer_type = "application"
@@ -347,6 +380,8 @@ resource "aws_lb" "frontend" {
 }
 
 resource "aws_lb_target_group" "frontend" {
+  count = local.create_resources
+
   name        = "${local.environment}-traba-frontend-tg"
   port        = var.frontend_container_port
   protocol    = "HTTP"
@@ -371,6 +406,8 @@ resource "aws_lb_target_group" "frontend" {
 }
 
 resource "aws_lb_listener" "frontend_https" {
+  count = local.create_resources
+
   load_balancer_arn = aws_lb.frontend.arn
   port              = "443"
   protocol          = "HTTPS"
@@ -384,6 +421,8 @@ resource "aws_lb_listener" "frontend_https" {
 }
 
 resource "aws_lb_listener" "frontend_http" {
+  count = local.create_resources
+
   load_balancer_arn = aws_lb.frontend.arn
   port              = "80"
   protocol          = "HTTP"
@@ -400,6 +439,8 @@ resource "aws_lb_listener" "frontend_http" {
 }
 
 resource "aws_ecs_task_definition" "frontend" {
+  count = local.create_resources
+
   family                   = "${local.environment}-traba-frontend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -448,6 +489,8 @@ resource "aws_ecs_task_definition" "frontend" {
 }
 
 resource "aws_ecs_service" "frontend" {
+  count = local.create_resources
+
   name            = "${local.environment}-traba-frontend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
@@ -475,6 +518,8 @@ resource "aws_ecs_service" "frontend" {
 
 # Backend Resources
 resource "aws_lb" "backend" {
+  count = local.create_resources
+
   name               = "${local.environment}-traba-backend-alb"
   internal           = true
   load_balancer_type = "application"
@@ -488,6 +533,8 @@ resource "aws_lb" "backend" {
 }
 
 resource "aws_lb_target_group" "backend" {
+  count = local.create_resources
+
   name        = "${local.environment}-traba-backend-tg"
   port        = var.backend_container_port
   protocol    = "HTTP"
@@ -512,6 +559,8 @@ resource "aws_lb_target_group" "backend" {
 }
 
 resource "aws_lb_listener" "backend_https" {
+  count = local.create_resources
+  
   load_balancer_arn = aws_lb.backend.arn
   port              = "443"
   protocol          = "HTTPS"
@@ -527,6 +576,8 @@ resource "aws_lb_listener" "backend_https" {
 # Continuing with Backend Resources...
 
 resource "aws_ecs_task_definition" "backend" {
+  count = local.create_resources
+
   family                   = "${local.environment}-traba-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -571,6 +622,8 @@ resource "aws_ecs_task_definition" "backend" {
 }
 
 resource "aws_ecs_service" "backend" {
+  count = local.create_resources
+
   name            = "${local.environment}-traba-backend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.backend.arn
@@ -596,8 +649,95 @@ resource "aws_ecs_service" "backend" {
   }
 }
 
+# Create Aurora PostgreSQL cluster
+resource "aws_rds_cluster" "aurora_cluster" {
+  count = local.create_resources
+
+  cluster_identifier     = "${local.environment}-traba-aurora"
+  engine                = "aurora-postgresql"
+  engine_version        = "15.4"
+  database_name         = "traba"
+  master_username       = "trabadmin"
+  master_password       = random_password.master_password[0].result
+  skip_final_snapshot   = local.environment == "staging" ? true : false
+  deletion_protection   = local.environment == "prod" ? true : false
+  
+  vpc_security_group_ids = [aws_security_group.aurora_sg[0].id]
+  
+  tags = {
+    Environment = local.environment
+    Service     = "database"
+  }
+}
+
+# Create Aurora instance(s)
+resource "aws_rds_cluster_instance" "aurora_instances" {
+  count = local.environment == "staging" || local.environment == "prod" ? (local.environment == "prod" ? 2 : 1) : 0
+
+  identifier         = "${local.environment}-traba-aurora-${count.index + 1}"
+  cluster_identifier = aws_rds_cluster.aurora_cluster[0].id
+  instance_class     = local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
+  engine             = aws_rds_cluster.aurora_cluster[0].engine
+  engine_version     = aws_rds_cluster.aurora_cluster[0].engine_version
+
+  tags = {
+    Environment = local.environment
+    Service     = "database"
+  }
+}
+
+# Generate random password for database
+resource "random_password" "master_password" {
+  count = local.create_resources
+
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+// todo create aurora security group
+
+# Security group for Aurora
+resource "aws_security_group" "aurora_sg" {
+  count = local.create_resources
+
+  name_prefix = "${local.environment}-traba-aurora-sg"
+  description = "Security group for Aurora PostgreSQL cluster"
+  
+  # Add your VPC ID here
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend[0].id]
+  }
+
+  tags = {
+    Environment = local.environment
+    Service     = "database"
+  }
+}
+
+# Store database credentials in Secrets Manager
+resource "aws_secretsmanager_secret_version" "aurora_credentials" {
+  count = local.create_resources
+
+  secret_id = aws_secretsmanager_secret.backend_config.id
+  secret_string = jsonencode({
+    database_host     = aws_rds_cluster.aurora_cluster[0].endpoint
+    database_name     = aws_rds_cluster.aurora_cluster[0].database_name
+    database_username = aws_rds_cluster.aurora_cluster[0].master_username
+    database_password = random_password.master_password[0].result
+  })
+}
+
+
 # DNS and SSL Configuration
 resource "aws_acm_certificate" "main" {
+  count = local.create_resources
+
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}"]
   validation_method        = "DNS"
@@ -617,6 +757,8 @@ data "aws_route53_zone" "main" {
 }
 
 resource "aws_route53_record" "acm_validation" {
+  count = local.create_resources
+
   for_each = {
     for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
@@ -634,11 +776,15 @@ resource "aws_route53_record" "acm_validation" {
 }
 
 resource "aws_acm_certificate_validation" "main" {
+  count = local.create_resources
+
   certificate_arn         = aws_acm_certificate.main.arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
 resource "aws_route53_record" "frontend" {
+  count = local.create_resources
+
   zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
@@ -651,6 +797,8 @@ resource "aws_route53_record" "frontend" {
 }
 
 resource "aws_route53_record" "backend" {
+  count = local.create_resources
+
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "api.${var.domain_name}"
   type    = "A"
@@ -664,6 +812,8 @@ resource "aws_route53_record" "backend" {
 
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "frontend" {
+  count = local.create_resources
+
   name              = "/ecs/${local.environment}-traba-frontend"
   retention_in_days = 30
 
@@ -673,6 +823,8 @@ resource "aws_cloudwatch_log_group" "frontend" {
 }
 
 resource "aws_cloudwatch_log_group" "backend" {
+  count = local.create_resources
+
   name              = "/ecs/${local.environment}-traba-backend"
   retention_in_days = 30
 
@@ -730,4 +882,14 @@ output "frontend_security_group_id" {
 output "backend_security_group_id" {
   value       = aws_security_group.backend.id
   description = "ID of the backend security group"
+}
+
+output "aurora_endpoint" {
+  value       = local.environment == "staging" || local.environment == "prod" ? aws_rds_cluster.aurora_cluster[0].endpoint : null
+  description = "The endpoint of the Aurora cluster"
+}
+
+output "aurora_reader_endpoint" {
+  value       = local.environment == "staging" || local.environment == "prod" ? aws_rds_cluster.aurora_cluster[0].reader_endpoint : null
+  description = "The reader endpoint of the Aurora cluster"
 }
