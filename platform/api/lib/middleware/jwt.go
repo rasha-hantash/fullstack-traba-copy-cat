@@ -5,21 +5,17 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/config"
 )
 
 // todo: look into when i would use https://{yourDomain}/.well-known/jwks.json
 
 // CustomClaims contains custom data we want from the token.
-type Role struct {
-	RoleID string `json:"role_id"`
-}
-
 type CustomClaims struct {
 	Scope    string   `json:"scope"`
 	Email    string   `json:"https://traba-staging.fs0ciety.dev/email"`
@@ -35,9 +31,9 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 }
 
 // EnsureValidToken is a middleware that will check the validity of our JWT.
-func EnsureValidToken() func(next http.Handler) http.Handler {
+func EnsureValidToken(cfg *config.Config) func(next http.Handler) http.Handler {
 	log.Println("ensuring valid token")
-	issuerURL, err := url.Parse(os.Getenv("AUTH0_ISSUER_BASE_URL"))
+	issuerURL, err := url.Parse(cfg.Auth0IssuerBaseURL)
 	if err != nil {
 		log.Fatalf("Failed to parse the issuer url: %v", err)
 	}
@@ -49,7 +45,7 @@ func EnsureValidToken() func(next http.Handler) http.Handler {
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL.String(),
-		[]string{os.Getenv("AUTH0_AUDIENCE")},
+		[]string{cfg.Auth0Audience},
 		validator.WithCustomClaims(
 			func() validator.CustomClaims {
 				return &CustomClaims{}

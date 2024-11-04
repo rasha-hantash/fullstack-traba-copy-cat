@@ -5,10 +5,6 @@ import (
 	_ "github.com/lib/pq"
 	"log/slog"
 	"time"
-	"github.com/joho/godotenv"
-	"github.com/caarlos0/env/v6"
-
-
 	"context"
 	"fmt"
 	"net/http"
@@ -20,40 +16,57 @@ import (
 	// "github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/logger"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
+	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/config"
 	"github.com/rs/cors"
+
+
 )
 
 
+type Auth0Config struct {
+	Auth0Secret string `env:"AUTH0_SECRET"`
+	Auth0Domain string `env:"AUTH0_DOMAIN"`
+	Auth0BaseURL string `env:"AUTH0_BASE_URL"`
+	Auth0IssuerBaseURL string `env:"AUTH0_ISSUER_BASE_URL"`
+	Auth0ClientID string `env:"AUTH0_CLIENT_ID"`
+	Auth0ClientSecret string `env:"AUTH0_CLIENT_SECRET"`
+	Auth0RoleID string `env:"AUTH0_ROLE_ID"`
+	Auth0Audience string `env:"AUTH0_AUDIENCE"`
+	Auth0HookSecret string `env:"AUTH_HOOK_SECRET"`
+}
+
 type DatabaseConfig struct {
 	// todo update the connection string to be localhost, postgres, or whatever the host name is supposed to be 
-	ConnString string `env:"CONN_STRING" envDefault:"postgresql://admin:your_password@localhost:5438/traba?sslmode=disable"`
-	User       string `env:"DB_USER" envDefault:""`
-	Port       string `env:"DB_PORT" envDefault:""`
-	Host       string `env:"DB_HOST" envDefault:""`
-	Region     string `env:"DB_REGION" envDefault:""`
-	DBName     string `env:"DB_NAME" envDefault:""`
+	ConnString string `env:"CONN_STRING"`
 }
 
 // type Auth
 
 type Config struct {
-	ServerPort         string `env:"PORT" envDefault:"8000"`
-	Database           DatabaseConfig
-	Mode               string `env:"MODE" envDefault:"local"`
+	ServerPort         string `json:"PORT"`
+	DBConnString string `json:"CONN_STRING"`
+	Auth0Secret string `json:"AUTH0_SECRET"`
+	Auth0Domain string `json:"AUTH0_DOMAIN"`
+	Auth0BaseURL string `json:"AUTH0_BASE_URL"`
+	Auth0IssuerBaseURL string `json:"AUTH0_ISSUER_BASE_URL"`
+	Auth0ClientID string `json:"AUTH0_CLIENT_ID"`
+	Auth0ClientSecret string `json:"AUTH0_CLIENT_SECRET"`
+	Auth0RoleID string `json:"AUTH0_ROLE_ID"`
+	Auth0Audience string `json:"AUTH0_AUDIENCE"`
+	Auth0HookSecret string `json:"AUTH_HOOK_SECRET"`
 }
 
 
 // todo add logger later on
 func main() {
-	godotenv.Load(".env")
-	var c Config
-	err := env.Parse(&c)
+	ctx := context.Background()
+	cfg , err := config.LoadConfig(ctx)
 	if err != nil {
-		slog.Error("failed to parse default config", "error", err)
+		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
 
-	db, err := NewDBClient(c.Database.ConnString)
+	db, err := NewDBClient(cfg.DBConnString)
 	if err != nil {
 		slog.Error("failed to connect to db", "error", err)
 		os.Exit(1)
@@ -62,8 +75,8 @@ func main() {
 	fmt.Println("Connected to database")
 
 	svc := service.NewService(db)
-	h := handler.NewHandler(svc)
-
+	// todo: look more into why it is more appropriate to pass in pointers vs values
+	h := handler.NewHandler(svc, cfg)
 	r := chi.NewRouter()
 
 	// Middleware
@@ -77,13 +90,13 @@ func main() {
 			"*",
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
-			// "https://staging.getclaimclam.com",
+			"https://traba-staging.fs0ciety.dev",
 			// "https://app.getclaimclam.com",
 		},
 		// Debug: true,
 	}).Handler)
     r.Group(func(r chi.Router) {
-        r.Use(middleware.EnsureValidToken())
+        r.Use(middleware.EnsureValidToken(cfg))
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser)
     })
@@ -91,7 +104,7 @@ func main() {
 	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
 	// todo catch the error here
-	if err := http.ListenAndServe(":"+c.ServerPort, r); err != nil {
+	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {
 		slog.Error("failed to start server", "error", err)
 		os.Exit(1)
 	}
@@ -121,5 +134,7 @@ func NewDBClient(psqlConnStr string) (*sql.DB, error) {
 	slog.Info("postgres connection success")
 	return db, nil
 }
+
+
 
 

@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/lib/middleware"
 	"github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/service"
+    "github.com/rasha-hantash/fullstack-traba-copy-cat/platform/api/config"
 )
 
 type role string 
@@ -20,10 +20,14 @@ const EMPLOYER role = "rol_lz7KugKHb6tiTJVl"
 
 type Handler struct {
 	svc service.Service
+    cfg *config.Config
 }
 
-func NewHandler(svc service.Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc service.Service, cfg *config.Config) *Handler {
+	return &Handler{
+        svc: svc,
+        cfg: cfg,
+    }
 }
 
 type CreateUserReq struct {
@@ -34,7 +38,7 @@ type CreateUserReq struct {
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
     token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
     customClaims := token.CustomClaims.(*middleware.CustomClaims)
-    if customClaims.Roles[0] != string(EMPLOYER) {
+    if customClaims.Roles[0] != string(h.cfg.Auth0RoleID) {
         http.Error(w, "Unauthorized", http.StatusUnauthorized)
         return
     }
@@ -65,7 +69,7 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
     }
 
     	// 2. Validate secret
-	if reqBody.Secret != os.Getenv("AUTH0_HOOK_SECRET") {
+	if reqBody.Secret != h.cfg.Auth0HookSecret {
 		sendJSONResponse(w, http.StatusForbidden, "You must provide the secret")
 		return
 	}
