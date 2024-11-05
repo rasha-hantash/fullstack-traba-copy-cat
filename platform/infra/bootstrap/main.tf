@@ -54,6 +54,14 @@ resource "aws_route53_zone" "main" {
   }
 }
 
+// note this will take a while to create 
+/*
+aws_route53_zone.main: Still creating... [10s elapsed]
+aws_route53_zone.main: Still creating... [20s elapsed]
+aws_route53_zone.main: Still creating... [30s elapsed]
+aws_route53_zone.main: Creation complete after 40s [id=BLAHBLAHBLAH]
+ */
+
 output "route53_zone_id" {
   value       = aws_route53_zone.main.zone_id
   description = "The ID of the Route53 hosted zone"
