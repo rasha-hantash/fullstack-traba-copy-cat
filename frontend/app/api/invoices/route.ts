@@ -1,8 +1,8 @@
 // app/api/user/route.ts
 import auth from '@/utils/auth';
+import { config } from '../config';
 
 export const dynamic = 'force-dynamic';
-
 
 export async function GET(request: Request) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     
     const token = await auth.getAccessToken()
     // Construct the backend URL with search parameter
-    const backendUrl = new URL('http://localhost:8000/api/invoices');
+    const backendUrl = new URL(`${config.apiUrl}/api/invoices`);
     if (searchQuery) {
       backendUrl.searchParams.set('search', searchQuery);
     }

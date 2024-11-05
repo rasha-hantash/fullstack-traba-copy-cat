@@ -2,24 +2,15 @@ version: '3'
 vars:
   TAG:
     sh: echo "$(date +'%Y-%m-%d-%H:%M')-$(git rev-parse  HEAD)"
+  ENV: '{{.ENV | default "staging"}}'  # Add default ENV here
+
 tasks:
   fetch-ecr-arn:
       internal: true
-      vars:
-        ENV: '{{.ENV | default "staging"}}'
       cmds:
         - |
           ECR_ARN=$(aws ecr describe-repositories --repository-names traba-{{.ENV}} --query 'repositories[0].repositoryUri' --output text)
           echo "::set-output name=ECR_ARN::$ECR_ARN"
-
-  ecr:login:
-    desc: |
-      Logs into ECR for AWS
-    vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn | awk -F'"' '{print $4}'
-    cmds:
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {{ .ECR_ARN }}
 
   frontend:docker:staging:
     desc: Build and push frontend image
@@ -27,7 +18,7 @@ tasks:
       ECR_ARN:
         sh: task fetch-ecr-arn | awk -F'"' '{print $4}'
     cmds:
-      - docker build -f frontend/Dockerfile -t {{.ECR_ARN}}:frontend-{{.TAG}} .
+      - docker build --build-arg ENV={{.ENV}} -f frontend/Dockerfile -t {{.ECR_ARN}}:frontend-{{.TAG}} .
       - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
 
   backend:docker:staging:
@@ -36,7 +27,7 @@ tasks:
       ECR_ARN:
         sh: task fetch-ecr-arn | awk -F'"' '{print $4}'
     cmds:
-      - docker build -f backend/Dockerfile -t {{.ECR_ARN}}:backend-{{.TAG}} .
+      - docker build --build-arg ENV={{.ENV}} -f backend/Dockerfile -t {{.ECR_ARN}}:backend-{{.TAG}} .
       - docker push {{.ECR_ARN}}:backend-{{.TAG}}
 
   terraform:apply:staging:

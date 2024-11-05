@@ -68,6 +68,9 @@ func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    slog.Info("secret", "req.Secret", reqBody.Secret)
+    slog.Info("secret","cfg.Auth0HookSecret", h.cfg.Auth0HookSecret)
+
     	// 2. Validate secret
 	if reqBody.Secret != h.cfg.Auth0HookSecret {
 		sendJSONResponse(w, http.StatusForbidden, "You must provide the secret")

@@ -1,12 +1,7 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 
 export async function getAwsSecrets() {
-  let environment 
-    if (process.env.NODE_ENV === 'development') {
-        environment = 'local'
-    } else {
-        environment = process.env.NODE_ENV
-    }
+  let environment = process.env.ENV
 
   const client = new SecretsManagerClient({ 
     region: process.env.AWS_REGION,
@@ -19,7 +14,7 @@ export async function getAwsSecrets() {
   try {
     const response = await client.send(
       new GetSecretValueCommand({
-        SecretId: `local-frontend-config`,
+        SecretId: `traba-${environment}-frontend-config`,
       })
     );;
 

@@ -13,6 +13,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+# todo update this to have domain_name, fe_subdomain, be_subdomain
+
 # Variables
 variable "aws_region" {
   description = "AWS region to deploy to"
@@ -25,7 +27,9 @@ variable "aws_region" {
 locals {
   environment      = terraform.workspace
   create_resources = local.environment == "staging" || local.environment == "prod" ? 1 : 0
-  domain_name      = "traba-${local.environment}.fs0ciety.dev"
+  domain_name      = "fs0ciety.dev"
+  frontend_domain  = "traba-${local.environment}.${local.domain_name}"
+  backend_domain   = "api-traba-${local.environment}.${local.domain_name}"
 }
 
 # variable "domain_name" {
@@ -529,12 +533,6 @@ resource "aws_ecs_task_definition" "frontend" {
           protocol      = "tcp"
         }
       ]
-      environment = [
-        {
-          name  = "BACKEND_URL"
-          value = "https://api-${local.environment}.${local.domain_name}"
-        },
-      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -798,7 +796,7 @@ resource "aws_acm_certificate" "main" {
   count = local.create_resources
 
   domain_name               = local.domain_name
-  subject_alternative_names = ["*.${local.domain_name}"]
+  subject_alternative_names = ["*.fs0ciety.dev"]
   validation_method         = "DNS"
 
   tags = {
@@ -843,7 +841,7 @@ resource "aws_route53_record" "frontend" {
   count = local.create_resources
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = local.domain_name
+  name    = local.frontend_domain
   type    = "A"
 
   alias {
@@ -857,7 +855,7 @@ resource "aws_route53_record" "backend" {
   count = local.create_resources
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "api-${local.environment}.fs0ciety.dev"
+  name    = local.backend_domain
   type    = "A"
 
   alias {
@@ -907,12 +905,12 @@ output "private_subnet_id" {
 }
 
 output "frontend_url" {
-  value       = "https://${local.domain_name}"
+  value       = "https://${local.frontend_domain}"
   description = "URL of the frontend application"
 }
 
 output "backend_url" {
-  value       = "https://api-${local.environment}.fs0ciety.dev"
+  value       = "https://${local.backend_domain}"
   description = "URL of the backend API"
 }
 

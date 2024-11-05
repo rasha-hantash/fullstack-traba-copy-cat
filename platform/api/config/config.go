@@ -4,39 +4,39 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"os"
 )
 
 type Config struct {
 	ServerPort         string `json:"PORT"`
-	DBConnString string `json:"CONN_STRING"`
-	Auth0Secret string `json:"AUTH0_SECRET"`
-	Auth0Domain string `json:"AUTH0_DOMAIN"`
-	Auth0BaseURL string `json:"AUTH0_BASE_URL"`
+	DBConnString       string `json:"CONN_STRING"`
+	Auth0Secret        string `json:"AUTH0_SECRET"`
+	Auth0Domain        string `json:"AUTH0_DOMAIN"`
+	Auth0BaseURL       string `json:"AUTH0_BASE_URL"`
 	Auth0IssuerBaseURL string `json:"AUTH0_ISSUER_BASE_URL"`
-	Auth0ClientID string `json:"AUTH0_CLIENT_ID"`
-	Auth0ClientSecret string `json:"AUTH0_CLIENT_SECRET"`
-	Auth0RoleID string `json:"AUTH0_ROLE_ID"`
-	Auth0Audience string `json:"AUTH0_AUDIENCE"`
-	Auth0HookSecret string `json:"AUTH_HOOK_SECRET"`
+	Auth0ClientID      string `json:"AUTH0_CLIENT_ID"`
+	Auth0ClientSecret  string `json:"AUTH0_CLIENT_SECRET"`
+	Auth0RoleID        string `json:"AUTH0_ROLE_ID"`
+	Auth0Audience      string `json:"AUTH0_AUDIENCE"`
+	Auth0HookSecret    string `json:"AUTH0_HOOK_SECRET"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
-	env := os.Getenv("ENVIRONMENT")
+	env := os.Getenv("ENV")
 	if env == "" {
 		env = "local"
 	}
 
 	region := os.Getenv("AWS_REGION")
-
-	secretName := fmt.Sprintf("%s-traba-backend-config", env)
+	secretName := fmt.Sprintf("traba-%s-backend-config", env)
 
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	})
+	
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS session: %v", err)
 	}
@@ -67,5 +67,3 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 
 	return &config, nil
 }
-
-

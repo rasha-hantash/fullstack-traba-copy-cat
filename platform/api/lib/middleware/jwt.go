@@ -18,9 +18,9 @@ import (
 // CustomClaims contains custom data we want from the token.
 type CustomClaims struct {
 	Scope    string   `json:"scope"`
-	Email    string   `json:"https://traba-staging.fs0ciety.dev/email"`
-	DBUserId string   `json:"https://traba-staging.fs0ciety.dev/db_user_id"`
-	Roles    []string `json:"https://traba-staging.fs0ciety.dev/roles"`
+	Email    string   `json:"https://traba.fs0ciety.dev/email"`
+	DBUserId string   `json:"https://traba.fs0ciety.dev/db_user_id"`
+	Roles    []string `json:"https://traba.fs0ciety.dev/roles"`
 }
 
 // CustomClaims defines any custom data / claims wanted.

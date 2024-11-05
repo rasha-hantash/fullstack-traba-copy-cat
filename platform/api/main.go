@@ -103,6 +103,7 @@ func main() {
 
 	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
+	slog.InfoContext(ctx, "starting server", "port", cfg.ServerPort)
 	// todo catch the error here
 	if err := http.ListenAndServe(":"+cfg.ServerPort, r); err != nil {
 		slog.Error("failed to start server", "error", err)
