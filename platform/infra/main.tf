@@ -20,16 +20,19 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+
+
 locals {
-  environment = terraform.workspace
+  environment      = terraform.workspace
   create_resources = local.environment == "staging" || local.environment == "prod" ? 1 : 0
+  domain_name      = "traba-${local.environment}.fs0ciety.dev"
 }
 
-variable "domain_name" {
-  description = "Domain name for the traba application"
-  type        = string
-  default     = "traba-${local.environment}.fs0ciety.dev"
-}
+# variable "domain_name" {
+#   description = "Domain name for the traba application"
+#   type        = string
+# }
+
 
 variable "availability_zone" {
   description = "Availability zone for resources"
@@ -97,7 +100,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name        = "${local.environment}-traba-vpc"
+    Name        = "traba-${local.environment}-vpc"
     Environment = local.environment
   }
 }
@@ -105,13 +108,13 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   count = local.create_resources
 
-  vpc_id                  = aws_vpc.main.id
+  vpc_id                  = aws_vpc.main[count.index].id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${local.environment}-traba-public"
+    Name        = "traba-${local.environment}-public"
     Environment = local.environment
   }
 }
@@ -119,12 +122,12 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   count = local.create_resources
 
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = aws_vpc.main[count.index].id
   cidr_block        = "10.0.2.0/24"
   availability_zone = var.availability_zone
 
   tags = {
-    Name        = "${local.environment}-traba-private"
+    Name        = "traba-${local.environment}-private"
     Environment = local.environment
   }
 }
@@ -132,18 +135,19 @@ resource "aws_subnet" "private" {
 resource "aws_internet_gateway" "main" {
   count = local.create_resources
 
-  vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.main[count.index].id
 
   tags = {
-    Name        = "${local.environment}-traba-igw"
+    Name        = "traba-${local.environment}-igw"
     Environment = local.environment
   }
 }
 
 resource "aws_eip" "nat" {
+  count  = local.create_resources
   domain = "vpc"
   tags = {
-    Name        = "${local.environment}-traba-nat-eip"
+    Name        = "traba-${local.environment}-nat-eip"
     Environment = local.environment
   }
 }
@@ -151,11 +155,11 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   count = local.create_resources
 
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
 
   tags = {
-    Name        = "${local.environment}-traba-nat"
+    Name        = "traba-${local.environment}-nat"
     Environment = local.environment
   }
 }
@@ -163,15 +167,15 @@ resource "aws_nat_gateway" "main" {
 resource "aws_route_table" "public" {
   count = local.create_resources
 
-  vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.main[count.index].id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
+    gateway_id = aws_internet_gateway.main[count.index].id
   }
 
   tags = {
-    Name        = "${local.environment}-traba-public-rt"
+    Name        = "traba-${local.environment}-public-rt"
     Environment = local.environment
   }
 }
@@ -179,15 +183,15 @@ resource "aws_route_table" "public" {
 resource "aws_route_table" "private" {
   count = local.create_resources
 
-  vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.main[count.index].id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
+    nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
 
   tags = {
-    Name        = "${local.environment}-traba-private-rt"
+    Name        = "traba-${local.environment}-private-rt"
     Environment = local.environment
   }
 }
@@ -195,21 +199,23 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "public" {
   count = local.create_resources
 
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public[count.index].id
 }
 
 resource "aws_route_table_association" "private" {
-  subnet_id      = aws_subnet.private.id
-  route_table_id = aws_route_table.private.id
+  count = local.create_resources
+
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # Security Groups
 resource "aws_security_group" "frontend_alb" {
   count = local.create_resources
 
-  name_prefix = "${local.environment}-traba-frontend-alb-sg"
-  vpc_id      = aws_vpc.main.id
+  name_prefix = "traba-${local.environment}-frontend-alb-sg"
+  vpc_id      = aws_vpc.main[count.index].id
 
   ingress {
     from_port   = 80
@@ -233,7 +239,7 @@ resource "aws_security_group" "frontend_alb" {
   }
 
   tags = {
-    Name        = "${local.environment}-traba-frontend-alb-sg"
+    Name        = "traba-${local.environment}-frontend-alb-sg"
     Environment = local.environment
   }
 }
@@ -241,14 +247,14 @@ resource "aws_security_group" "frontend_alb" {
 resource "aws_security_group" "backend_alb" {
   count = local.create_resources
 
-  name_prefix = "${local.environment}-traba-backend-alb-sg"
-  vpc_id      = aws_vpc.main.id
+  name_prefix = "traba-${local.environment}-backend-alb-sg"
+  vpc_id      = aws_vpc.main[count.index].id
 
   ingress {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
-    security_groups = [aws_security_group.frontend.id]
+    security_groups = [aws_security_group.frontend[count.index].id]
   }
 
   egress {
@@ -259,7 +265,7 @@ resource "aws_security_group" "backend_alb" {
   }
 
   tags = {
-    Name        = "${local.environment}-traba-backend-alb-sg"
+    Name        = "traba-${local.environment}-backend-alb-sg"
     Environment = local.environment
   }
 }
@@ -267,14 +273,14 @@ resource "aws_security_group" "backend_alb" {
 resource "aws_security_group" "frontend" {
   count = local.create_resources
 
-  name_prefix = "${local.environment}-traba-frontend-sg"
-  vpc_id      = aws_vpc.main.id
+  name_prefix = "traba-${local.environment}-frontend-sg"
+  vpc_id      = aws_vpc.main[count.index].id
 
   ingress {
     from_port       = var.frontend_container_port
     to_port         = var.frontend_container_port
     protocol        = "tcp"
-    security_groups = [aws_security_group.frontend_alb.id]
+    security_groups = [aws_security_group.frontend_alb[count.index].id]
   }
 
   egress {
@@ -285,7 +291,7 @@ resource "aws_security_group" "frontend" {
   }
 
   tags = {
-    Name        = "${local.environment}-traba-frontend-sg"
+    Name        = "traba-${local.environment}-frontend-sg"
     Environment = local.environment
   }
 }
@@ -293,14 +299,14 @@ resource "aws_security_group" "frontend" {
 resource "aws_security_group" "backend" {
   count = local.create_resources
 
-  name_prefix = "${local.environment}-traba-backend-sg"
-  vpc_id      = aws_vpc.main.id
+  name_prefix = "traba-${local.environment}-backend-sg"
+  vpc_id      = aws_vpc.main[count.index].id
 
   ingress {
     from_port       = var.backend_container_port
     to_port         = var.backend_container_port
     protocol        = "tcp"
-    security_groups = [aws_security_group.backend_alb.id]
+    security_groups = [aws_security_group.backend_alb[count.index].id]
   }
 
   egress {
@@ -311,7 +317,7 @@ resource "aws_security_group" "backend" {
   }
 
   tags = {
-    Name        = "${local.environment}-traba-backend-sg"
+    Name        = "traba-${local.environment}-backend-sg"
     Environment = local.environment
   }
 }
@@ -320,7 +326,7 @@ resource "aws_security_group" "backend" {
 resource "aws_ecs_cluster" "main" {
   count = local.create_resources
 
-  name = "${local.environment}-traba-cluster"
+  name = "traba-${local.environment}-cluster"
 
   setting {
     name  = "containerInsights"
@@ -336,7 +342,7 @@ resource "aws_ecs_cluster" "main" {
 resource "aws_iam_role" "ecs_task_execution_role" {
   count = local.create_resources
 
-  name = "${local.environment}-traba-ecs-task-execution-role"
+  name = "traba-${local.environment}-ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -359,7 +365,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   count = local.create_resources
 
-  role       = aws_iam_role.ecs_task_execution_role.name
+  role       = aws_iam_role.ecs_task_execution_role[count.index].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
@@ -367,14 +373,14 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 resource "aws_lb" "frontend" {
   count = local.create_resources
 
-  name               = "${local.environment}-traba-frontend-alb"
+  name               = "traba-${local.environment}-frontend-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.frontend_alb.id]
-  subnets           = [aws_subnet.public.id]
+  security_groups    = [aws_security_group.frontend_alb[count.index].id]
+  subnets            = [aws_subnet.public[count.index].id]
 
   tags = {
-    Name        = "${local.environment}-traba-frontend-alb"
+    Name        = "traba-${local.environment}-frontend-alb"
     Environment = local.environment
   }
 }
@@ -382,10 +388,10 @@ resource "aws_lb" "frontend" {
 resource "aws_lb_target_group" "frontend" {
   count = local.create_resources
 
-  name        = "${local.environment}-traba-frontend-tg"
+  name        = "traba-${local.environment}-frontend-tg"
   port        = var.frontend_container_port
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.main[count.index].id
   target_type = "ip"
 
   health_check {
@@ -408,22 +414,22 @@ resource "aws_lb_target_group" "frontend" {
 resource "aws_lb_listener" "frontend_https" {
   count = local.create_resources
 
-  load_balancer_arn = aws_lb.frontend.arn
+  load_balancer_arn = aws_lb.frontend[count.index].arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate.main.arn
+  certificate_arn   = aws_acm_certificate.main[count.index].arn
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
+    target_group_arn = aws_lb_target_group.frontend[count.index].arn
   }
 }
 
 resource "aws_lb_listener" "frontend_http" {
   count = local.create_resources
 
-  load_balancer_arn = aws_lb.frontend.arn
+  load_balancer_arn = aws_lb.frontend[count.index].arn
   port              = "80"
   protocol          = "HTTP"
 
@@ -441,12 +447,12 @@ resource "aws_lb_listener" "frontend_http" {
 resource "aws_ecs_task_definition" "frontend" {
   count = local.create_resources
 
-  family                   = "${local.environment}-traba-frontend"
+  family                   = "traba-${local.environment}-frontend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role[count.index].arn
 
   container_definitions = jsonencode([
     {
@@ -460,23 +466,15 @@ resource "aws_ecs_task_definition" "frontend" {
       ]
       environment = [
         {
-          name  = "NODE_ENV"
-          value = local.environment
-        },
-        {
           name  = "BACKEND_URL"
-          value = "https://api.${var.domain_name}"
+          value = "https://api-${local.environment}.${local.domain_name}"
         },
-        {
-          name  = "AUTH0_DOMAIN"
-          value = var.auth0_domain
-        }
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-region"        = var.aws_region
-          "awslogs-group"         = aws_cloudwatch_log_group.frontend.name
+          "awslogs-group"         = aws_cloudwatch_log_group.frontend[count.index].name
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -491,20 +489,20 @@ resource "aws_ecs_task_definition" "frontend" {
 resource "aws_ecs_service" "frontend" {
   count = local.create_resources
 
-  name            = "${local.environment}-traba-frontend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
+  name            = "traba-${local.environment}-frontend"
+  cluster         = aws_ecs_cluster.main[count.index].id
+  task_definition = aws_ecs_task_definition.frontend[count.index].arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.private.id]
-    security_groups  = [aws_security_group.frontend.id]
+    subnets          = [aws_subnet.private[count.index].id]
+    security_groups  = [aws_security_group.frontend[count.index].id]
     assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.frontend.arn
+    target_group_arn = aws_lb_target_group.frontend[count.index].arn
     container_name   = "frontend"
     container_port   = var.frontend_container_port
   }
@@ -520,14 +518,14 @@ resource "aws_ecs_service" "frontend" {
 resource "aws_lb" "backend" {
   count = local.create_resources
 
-  name               = "${local.environment}-traba-backend-alb"
+  name               = "traba-${local.environment}-backend-alb"
   internal           = true
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.backend_alb.id]
-  subnets           = [aws_subnet.public.id]
+  security_groups    = [aws_security_group.backend_alb[count.index].id]
+  subnets            = [aws_subnet.public[count.index].id]
 
   tags = {
-    Name        = "${local.environment}-traba-backend-alb"
+    Name        = "traba-${local.environment}-backend-alb"
     Environment = local.environment
   }
 }
@@ -535,10 +533,10 @@ resource "aws_lb" "backend" {
 resource "aws_lb_target_group" "backend" {
   count = local.create_resources
 
-  name        = "${local.environment}-traba-backend-tg"
+  name        = "traba-${local.environment}-backend-tg"
   port        = var.backend_container_port
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.main[count.index].id
   target_type = "ip"
 
   health_check {
@@ -560,16 +558,16 @@ resource "aws_lb_target_group" "backend" {
 
 resource "aws_lb_listener" "backend_https" {
   count = local.create_resources
-  
-  load_balancer_arn = aws_lb.backend.arn
+
+  load_balancer_arn = aws_lb.backend[count.index].arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate.main.arn
+  certificate_arn   = aws_acm_certificate.main[count.index].arn
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
+    target_group_arn = aws_lb_target_group.backend[count.index].arn
   }
 }
 
@@ -578,12 +576,12 @@ resource "aws_lb_listener" "backend_https" {
 resource "aws_ecs_task_definition" "backend" {
   count = local.create_resources
 
-  family                   = "${local.environment}-traba-backend"
+  family                   = "traba-${local.environment}-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role[count.index].arn
 
   container_definitions = jsonencode([
     {
@@ -595,21 +593,11 @@ resource "aws_ecs_task_definition" "backend" {
           protocol      = "tcp"
         }
       ]
-      environment = [
-        {
-          name  = "NODE_ENV"
-          value = local.environment
-        },
-        {
-          name  = "AUTH0_DOMAIN"
-          value = var.auth0_domain
-        }
-      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-region"        = var.aws_region
-          "awslogs-group"         = aws_cloudwatch_log_group.backend.name
+          "awslogs-group"         = aws_cloudwatch_log_group.backend[count.index].name
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -624,20 +612,20 @@ resource "aws_ecs_task_definition" "backend" {
 resource "aws_ecs_service" "backend" {
   count = local.create_resources
 
-  name            = "${local.environment}-traba-backend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.backend.arn
+  name            = "traba-${local.environment}-backend"
+  cluster         = aws_ecs_cluster.main[count.index].id
+  task_definition = aws_ecs_task_definition.backend[count.index].arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.private.id]
-    security_groups  = [aws_security_group.backend.id]
+    subnets          = [aws_subnet.private[count.index].id]
+    security_groups  = [aws_security_group.backend[count.index].id]
     assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.backend.arn
+    target_group_arn = aws_lb_target_group.backend[count.index].arn
     container_name   = "backend"
     container_port   = var.backend_container_port
   }
@@ -653,17 +641,17 @@ resource "aws_ecs_service" "backend" {
 resource "aws_rds_cluster" "aurora_cluster" {
   count = local.create_resources
 
-  cluster_identifier     = "${local.environment}-traba-aurora"
-  engine                = "aurora-postgresql"
-  engine_version        = "15.4"
-  database_name         = "traba"
-  master_username       = "trabadmin"
-  master_password       = random_password.master_password[0].result
-  skip_final_snapshot   = local.environment == "staging" ? true : false
-  deletion_protection   = local.environment == "prod" ? true : false
-  
+  cluster_identifier  = "traba-${local.environment}-aurora"
+  engine              = "aurora-postgresql"
+  engine_version      = "15.4"
+  database_name       = "traba"
+  master_username     = "trabadmin"
+  master_password     = random_password.master_password[0].result
+  skip_final_snapshot = local.environment == "staging" ? true : false
+  deletion_protection = local.environment == "prod" ? true : false
+
   vpc_security_group_ids = [aws_security_group.aurora_sg[0].id]
-  
+
   tags = {
     Environment = local.environment
     Service     = "database"
@@ -703,9 +691,9 @@ resource "aws_security_group" "aurora_sg" {
 
   name_prefix = "${local.environment}-traba-aurora-sg"
   description = "Security group for Aurora PostgreSQL cluster"
-  
+
   # Add your VPC ID here
-  vpc_id      = aws_vpc.main.id
+  vpc_id = aws_vpc.main[count.index].id
 
   ingress {
     from_port       = 5432
@@ -720,11 +708,17 @@ resource "aws_security_group" "aurora_sg" {
   }
 }
 
+# First, add a data source to fetch the existing secret
+data "aws_secretsmanager_secret" "backend_config" {
+  count = local.create_resources
+  name  = "${local.environment}-traba-backend-config"
+}
+
 # Store database credentials in Secrets Manager
 resource "aws_secretsmanager_secret_version" "aurora_credentials" {
   count = local.create_resources
 
-  secret_id = aws_secretsmanager_secret.backend_config.id
+  secret_id = data.aws_secretsmanager_secret.backend_config[0].id
   secret_string = jsonencode({
     database_host     = aws_rds_cluster.aurora_cluster[0].endpoint
     database_name     = aws_rds_cluster.aurora_cluster[0].database_name
@@ -738,9 +732,9 @@ resource "aws_secretsmanager_secret_version" "aurora_credentials" {
 resource "aws_acm_certificate" "main" {
   count = local.create_resources
 
-  domain_name               = var.domain_name
-  subject_alternative_names = ["*.${var.domain_name}"]
-  validation_method        = "DNS"
+  domain_name               = local.domain_name
+  subject_alternative_names = ["*.${local.domain_name}"]
+  validation_method         = "DNS"
 
   tags = {
     Environment = local.environment
@@ -752,20 +746,18 @@ resource "aws_acm_certificate" "main" {
 }
 
 data "aws_route53_zone" "main" {
-  name         = var.domain_name
+  name         = "fs0ciety.dev" //local.domain_name
   private_zone = false
 }
 
 resource "aws_route53_record" "acm_validation" {
-  count = local.create_resources
-
-  for_each = {
-    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
+  for_each = local.create_resources > 0 ? {
+    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       record = dvo.resource_record_value
       type   = dvo.resource_record_type
     }
-  }
+  } : {}
 
   allow_overwrite = true
   name            = each.value.name
@@ -778,7 +770,7 @@ resource "aws_route53_record" "acm_validation" {
 resource "aws_acm_certificate_validation" "main" {
   count = local.create_resources
 
-  certificate_arn         = aws_acm_certificate.main.arn
+  certificate_arn         = aws_acm_certificate.main[0].arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
@@ -786,12 +778,12 @@ resource "aws_route53_record" "frontend" {
   count = local.create_resources
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = var.domain_name
+  name    = local.domain_name
   type    = "A"
 
   alias {
-    name                   = aws_lb.frontend.dns_name
-    zone_id               = aws_lb.frontend.zone_id
+    name                   = aws_lb.frontend[count.index].dns_name
+    zone_id                = aws_lb.frontend[count.index].zone_id
     evaluate_target_health = true
   }
 }
@@ -800,12 +792,12 @@ resource "aws_route53_record" "backend" {
   count = local.create_resources
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "api.${var.domain_name}"
+  name    = "api-${local.environment}.${local.domain_name}"
   type    = "A"
 
   alias {
-    name                   = aws_lb.backend.dns_name
-    zone_id               = aws_lb.backend.zone_id
+    name                   = aws_lb.backend[count.index].dns_name
+    zone_id                = aws_lb.backend[count.index].zone_id
     evaluate_target_health = true
   }
 }
@@ -835,52 +827,52 @@ resource "aws_cloudwatch_log_group" "backend" {
 
 # Outputs
 output "vpc_id" {
-  value       = aws_vpc.main.id
+  value       = local.create_resources > 0 ? aws_vpc.main[0].id : null
   description = "ID of the VPC"
 }
 
 output "public_subnet_id" {
-  value       = aws_subnet.public.id
+  value       = local.create_resources > 0 ? aws_subnet.public[0].id : null
   description = "ID of the public subnet"
 }
 
 output "private_subnet_id" {
-  value       = aws_subnet.private.id
+  value       = local.create_resources > 0 ? aws_subnet.private[0].id : null
   description = "ID of the private subnet"
 }
 
 output "frontend_url" {
-  value       = "https://${var.domain_name}"
+  value       = "https://traba-${local.environment}.${local.domain_name}"
   description = "URL of the frontend application"
 }
 
 output "backend_url" {
-  value       = "https://api.${var.domain_name}"
+  value       = "https://api-${local.environment}.${local.domain_name}"
   description = "URL of the backend API"
 }
 
 output "frontend_alb_dns" {
-  value       = aws_lb.frontend.dns_name
+  value       = local.create_resources > 0 ? aws_lb.frontend[0].dns_name : null
   description = "DNS name of the frontend load balancer"
 }
 
 output "backend_alb_dns" {
-  value       = aws_lb.backend.dns_name
+  value       = local.create_resources > 0 ? aws_lb.backend[0].dns_name : null
   description = "DNS name of the backend load balancer"
 }
 
 output "ecs_cluster_name" {
-  value       = aws_ecs_cluster.main.name
+  value       = local.create_resources > 0 ? aws_ecs_cluster.main[0].name : null
   description = "Name of the ECS cluster"
 }
 
 output "frontend_security_group_id" {
-  value       = aws_security_group.frontend.id
+  value       = local.create_resources > 0 ? aws_security_group.frontend[0].id : null
   description = "ID of the frontend security group"
 }
 
 output "backend_security_group_id" {
-  value       = aws_security_group.backend.id
+  value       = local.create_resources > 0 ? aws_security_group.backend[0].id : null
   description = "ID of the backend security group"
 }
 

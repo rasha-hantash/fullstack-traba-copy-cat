@@ -1,5 +1,4 @@
-aws_region = "us-east-1"
-domain_name = "fs0ceity.dev"
-auth0_domain = "your-tenant.auth0.com"
+aws_region               = "us-east-1"
+auth0_domain             = "your-tenant.auth0.com"
 frontend_container_image = "your-frontend-image:latest"
-backend_container_image = "your-backend-image:latest"
+backend_container_image  = "your-backend-image:latest"

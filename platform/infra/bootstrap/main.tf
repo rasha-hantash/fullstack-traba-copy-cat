@@ -7,6 +7,8 @@ terraform {
   }
 }
 
+// todo: create s3 bucket to store terraform state file 
+
 locals {
   environment = terraform.workspace
 }
@@ -17,7 +19,7 @@ provider "aws" {
 
 # Create ECR repository
 resource "aws_ecr_repository" "traba" {
-  name                 = "${local.environment}-traba"
+  name                 = "traba-${local.environment}"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -27,7 +29,7 @@ resource "aws_ecr_repository" "traba" {
 
 # Create AWS Secrets Manager secret for frontend config
 resource "aws_secretsmanager_secret" "frontend_config" {
-  name = "${local.environment}-traba-frontend-config"
+  name = "traba-${local.environment}-frontend-config"
 
   tags = {
     Environment = local.environment
@@ -37,11 +39,24 @@ resource "aws_secretsmanager_secret" "frontend_config" {
 
 # Create AWS Secrets Manager secret for backend config
 resource "aws_secretsmanager_secret" "backend_config" {
-  name = "${local.environment}-traba-backend-config"
+  name = "traba-${local.environment}-backend-config"
   tags = {
     Environment = local.environment
     Service     = "backend"
   }
+}
+
+resource "aws_route53_zone" "main" {
+  name = "fs0ceity.dev" # Your base domain
+
+  tags = {
+    Name = "traba-zone"
+  }
+}
+
+output "route53_zone_id" {
+  value       = aws_route53_zone.main.zone_id
+  description = "The ID of the Route53 hosted zone"
 }
 
 # Outputs
