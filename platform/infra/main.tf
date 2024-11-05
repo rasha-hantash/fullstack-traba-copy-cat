@@ -40,22 +40,37 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 
-variable "frontend_container_image" {
-  description = "Frontend container image"
+# variable "frontend_container_image" {
+#   description = "Frontend container image"
+#   type        = string
+#   validation {
+#     condition     = length(var.frontend_container_image) > 0
+#     error_message = "Frontend container image must be specified"
+#   }
+# }
+
+# variable "backend_container_image" {
+#   description = "Backend container image"
+#   type        = string
+#   validation {
+#     condition     = length(var.backend_container_image) > 0
+#     error_message = "Backend container image must be specified"
+#   }
+# }
+
+variable "frontend_image_tag" {
+  description = "Tag for frontend container image"
   type        = string
-  validation {
-    condition     = length(var.frontend_container_image) > 0
-    error_message = "Frontend container image must be specified"
-  }
 }
 
-variable "backend_container_image" {
-  description = "Backend container image"
+variable "backend_image_tag" {
+  description = "Tag for backend container image"
   type        = string
-  validation {
-    condition     = length(var.backend_container_image) > 0
-    error_message = "Backend container image must be specified"
-  }
+}
+
+variable "ecr_repository_url" {
+  description = "ECR repository URL"
+  type        = string
 }
 
 variable "frontend_container_port" {
@@ -70,15 +85,6 @@ variable "backend_container_port" {
   default     = 3000
 }
 
-variable "auth0_domain" {
-  description = "Auth0 domain"
-  type        = string
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9-]+\\.auth0\\.com$", var.auth0_domain))
-    error_message = "Auth0 domain must be a valid auth0.com domain"
-  }
-}
-
 variable "health_check_path_frontend" {
   description = "Health check path for frontend traba service"
   type        = string
@@ -89,6 +95,55 @@ variable "health_check_path_backend" {
   description = "Health check path for backend traba service"
   type        = string
   default     = "/health"
+}
+
+variable "auth0_us_ips" {
+  description = "Auth0 US region outbound IP addresses"
+  type        = list(string)
+  default = [
+    "174.129.105.183",
+    "18.116.79.126",
+    "18.117.64.128",
+    "18.191.46.63",
+    "18.218.26.94",
+    "18.232.225.224",
+    "18.233.90.226",
+    "3.131.238.180",
+    "3.131.55.63",
+    "3.132.201.78",
+    "3.133.18.220",
+    "3.134.176.17",
+    "3.19.44.88",
+    "3.20.244.231",
+    "3.21.254.195",
+    "3.211.189.167",
+    "34.211.191.214",
+    "34.233.19.82",
+    "34.233.190.223",
+    "35.160.3.103",
+    "35.162.47.8",
+    "35.166.202.113",
+    "35.167.74.121",
+    "35.171.156.124",
+    "35.82.131.220",
+    "44.205.93.104",
+    "44.218.235.21",
+    "44.219.52.110",
+    "52.12.243.90",
+    "52.2.61.131",
+    "52.204.128.250",
+    "52.206.34.127",
+    "52.43.255.209",
+    "52.88.192.232",
+    "52.89.116.72",
+    "54.145.227.59",
+    "54.157.101.160",
+    "54.200.12.78",
+    "54.209.32.202",
+    "54.245.16.146",
+    "54.68.157.8",
+    "54.69.107.228"
+  ]
 }
 
 # VPC and Network Configuration
@@ -250,11 +305,21 @@ resource "aws_security_group" "backend_alb" {
   name_prefix = "traba-${local.environment}-backend-alb-sg"
   vpc_id      = aws_vpc.main[count.index].id
 
+  # Rule for frontend service
   ingress {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
     security_groups = [aws_security_group.frontend[count.index].id]
+  }
+
+  # Rule for Auth0 webhook
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [for ip in var.auth0_us_ips : "${ip}/32"]
+    description = "Allow traffic from Auth0 webhooks"
   }
 
   egress {
@@ -457,7 +522,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name  = "frontend"
-      image = var.frontend_container_image
+      image = "${var.ecr_repository_url}:${var.frontend_image_tag}"
       portMappings = [
         {
           containerPort = var.frontend_container_port
@@ -586,7 +651,7 @@ resource "aws_ecs_task_definition" "backend" {
   container_definitions = jsonencode([
     {
       name  = "backend"
-      image = var.backend_container_image
+      image = "${var.ecr_repository_url}:${var.backend_image_tag}"
       portMappings = [
         {
           containerPort = var.backend_container_port
