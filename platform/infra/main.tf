@@ -662,7 +662,7 @@ resource "aws_rds_cluster" "aurora_cluster" {
 resource "aws_rds_cluster_instance" "aurora_instances" {
   count = local.environment == "staging" || local.environment == "prod" ? (local.environment == "prod" ? 2 : 1) : 0
 
-  identifier         = "${local.environment}-traba-aurora-${count.index + 1}"
+  identifier         = "traba-${local.environment}-aurora-${count.index + 1}"
   cluster_identifier = aws_rds_cluster.aurora_cluster[0].id
   instance_class     = local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
   engine             = aws_rds_cluster.aurora_cluster[0].engine
@@ -689,7 +689,7 @@ resource "random_password" "master_password" {
 resource "aws_security_group" "aurora_sg" {
   count = local.create_resources
 
-  name_prefix = "${local.environment}-traba-aurora-sg"
+  name_prefix = "traba-${local.environment}-aurora-sg"
   description = "Security group for Aurora PostgreSQL cluster"
 
   # Add your VPC ID here
@@ -711,7 +711,7 @@ resource "aws_security_group" "aurora_sg" {
 # First, add a data source to fetch the existing secret
 data "aws_secretsmanager_secret" "backend_config" {
   count = local.create_resources
-  name  = "${local.environment}-traba-backend-config"
+  name  = "traba-${local.environment}-backend-config"
 }
 
 # Store database credentials in Secrets Manager
@@ -792,7 +792,7 @@ resource "aws_route53_record" "backend" {
   count = local.create_resources
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "api-${local.environment}.${local.domain_name}"
+  name    = "api-${local.environment}.fs0ciety.dev"
   type    = "A"
 
   alias {
@@ -806,7 +806,7 @@ resource "aws_route53_record" "backend" {
 resource "aws_cloudwatch_log_group" "frontend" {
   count = local.create_resources
 
-  name              = "/ecs/${local.environment}-traba-frontend"
+  name              = "/ecs/traba-${local.environment}-frontend"
   retention_in_days = 30
 
   tags = {
@@ -817,7 +817,7 @@ resource "aws_cloudwatch_log_group" "frontend" {
 resource "aws_cloudwatch_log_group" "backend" {
   count = local.create_resources
 
-  name              = "/ecs/${local.environment}-traba-backend"
+  name              = "/ecs/traba-${local.environment}-backend"
   retention_in_days = 30
 
   tags = {
@@ -842,12 +842,12 @@ output "private_subnet_id" {
 }
 
 output "frontend_url" {
-  value       = "https://traba-${local.environment}.${local.domain_name}"
+  value       = "https://${local.domain_name}"
   description = "URL of the frontend application"
 }
 
 output "backend_url" {
-  value       = "https://api-${local.environment}.${local.domain_name}"
+  value       = "https://api-${local.environment}.fs0ciety.dev"
   description = "URL of the backend API"
 }
 
