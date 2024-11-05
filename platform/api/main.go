@@ -83,6 +83,21 @@ func main() {
 	// r.Use(middleware.Logger)
 	// r.Use(middleware.Recoverer)
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		// Optional: Check critical dependencies
+		// Example: Check database connection
+		if err := db.PingContext(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("unhealthy: database unreachable"))
+			return
+		}
+	
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("healthy"))
+	})
+
+	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
+
 	r.Use(cors.New(cors.Options{
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
@@ -100,8 +115,6 @@ func main() {
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser)
     })
-
-	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
 	slog.InfoContext(ctx, "starting server", "port", cfg.ServerPort)
 	// todo catch the error here

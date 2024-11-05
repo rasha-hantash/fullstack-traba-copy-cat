@@ -32,11 +32,6 @@ locals {
   backend_domain   = "api-traba-${local.environment}.${local.domain_name}"
 }
 
-# variable "domain_name" {
-#   description = "Domain name for the traba application"
-#   type        = string
-# }
-
 
 variable "availability_zone" {
   description = "Availability zone for resources"
@@ -44,23 +39,6 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 
-# variable "frontend_container_image" {
-#   description = "Frontend container image"
-#   type        = string
-#   validation {
-#     condition     = length(var.frontend_container_image) > 0
-#     error_message = "Frontend container image must be specified"
-#   }
-# }
-
-# variable "backend_container_image" {
-#   description = "Backend container image"
-#   type        = string
-#   validation {
-#     condition     = length(var.backend_container_image) > 0
-#     error_message = "Backend container image must be specified"
-#   }
-# }
 
 variable "frontend_image_tag" {
   description = "Tag for frontend container image"
@@ -92,7 +70,7 @@ variable "backend_container_port" {
 variable "health_check_path_frontend" {
   description = "Health check path for frontend traba service"
   type        = string
-  default     = "/"
+  default     = "/api/health"
 }
 
 variable "health_check_path_backend" {
@@ -693,103 +671,16 @@ resource "aws_ecs_service" "backend" {
     container_port   = var.backend_container_port
   }
 
-  depends_on = [aws_lb_listener.backend_https]
+  depends_on = [
+    aws_lb_listener.backend_https,
+    aws_rds_cluster.aurora_cluster,
+    aws_rds_cluster_instance.aurora_instances,
+  ]
 
   tags = {
     Environment = local.environment
   }
 }
-
-# Create Aurora PostgreSQL cluster
-resource "aws_rds_cluster" "aurora_cluster" {
-  count = local.create_resources
-
-  cluster_identifier  = "traba-${local.environment}-aurora"
-  engine              = "aurora-postgresql"
-  engine_version      = "15.4"
-  database_name       = "traba"
-  master_username     = "trabadmin"
-  master_password     = random_password.master_password[0].result
-  skip_final_snapshot = local.environment == "staging" ? true : false
-  deletion_protection = local.environment == "prod" ? true : false
-
-  vpc_security_group_ids = [aws_security_group.aurora_sg[0].id]
-
-  tags = {
-    Environment = local.environment
-    Service     = "database"
-  }
-}
-
-# Create Aurora instance(s)
-resource "aws_rds_cluster_instance" "aurora_instances" {
-  count = local.environment == "staging" || local.environment == "prod" ? (local.environment == "prod" ? 2 : 1) : 0
-
-  identifier         = "traba-${local.environment}-aurora-${count.index + 1}"
-  cluster_identifier = aws_rds_cluster.aurora_cluster[0].id
-  instance_class     = local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
-  engine             = aws_rds_cluster.aurora_cluster[0].engine
-  engine_version     = aws_rds_cluster.aurora_cluster[0].engine_version
-
-  tags = {
-    Environment = local.environment
-    Service     = "database"
-  }
-}
-
-# Generate random password for database
-resource "random_password" "master_password" {
-  count = local.create_resources
-
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-// todo create aurora security group
-
-# Security group for Aurora
-resource "aws_security_group" "aurora_sg" {
-  count = local.create_resources
-
-  name_prefix = "traba-${local.environment}-aurora-sg"
-  description = "Security group for Aurora PostgreSQL cluster"
-
-  # Add your VPC ID here
-  vpc_id = aws_vpc.main[count.index].id
-
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend[0].id]
-  }
-
-  tags = {
-    Environment = local.environment
-    Service     = "database"
-  }
-}
-
-# First, add a data source to fetch the existing secret
-data "aws_secretsmanager_secret" "backend_config" {
-  count = local.create_resources
-  name  = "traba-${local.environment}-backend-config"
-}
-
-# Store database credentials in Secrets Manager
-resource "aws_secretsmanager_secret_version" "aurora_credentials" {
-  count = local.create_resources
-
-  secret_id = data.aws_secretsmanager_secret.backend_config[0].id
-  secret_string = jsonencode({
-    database_host     = aws_rds_cluster.aurora_cluster[0].endpoint
-    database_name     = aws_rds_cluster.aurora_cluster[0].database_name
-    database_username = aws_rds_cluster.aurora_cluster[0].master_username
-    database_password = random_password.master_password[0].result
-  })
-}
-
 
 # DNS and SSL Configuration
 resource "aws_acm_certificate" "main" {
@@ -939,12 +830,115 @@ output "backend_security_group_id" {
   description = "ID of the backend security group"
 }
 
+
+resource "aws_rds_cluster" "aurora_cluster" {
+  count              = local.create_resources
+  cluster_identifier = "traba-${local.environment}"
+  engine             = "aurora-postgresql"
+  engine_version     = "15.4"
+  database_name      = "traba" # Add this line to create the database
+  master_username    = "traba_admin"
+  master_password    = random_password.master_password[0].result
+
+  # Add other configuration as needed
+  skip_final_snapshot = true
+
+  # You might also want to add these configurations
+  # backup_retention_period = 7
+  # preferred_backup_window = "07:00-09:00"
+  # deletion_protection    = local.environment == "prod" ? true : false  # Protect prod from accidental deletion
+
+  vpc_security_group_ids = [aws_security_group.aurora_sg[0].id]
+  depends_on = [ random_password.master_password ]
+}
+
+
+# Create Aurora instance(s)
+resource "aws_rds_cluster_instance" "aurora_instances" {
+  count = local.environment == "staging" || local.environment == "prod" ? (local.environment == "prod" ? 2 : 1) : 0
+
+  identifier         = "traba-${local.environment}-aurora-${count.index + 1}"
+  cluster_identifier = aws_rds_cluster.aurora_cluster[0].id
+  instance_class     = local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
+  engine             = aws_rds_cluster.aurora_cluster[0].engine
+  engine_version     = aws_rds_cluster.aurora_cluster[0].engine_version
+
+  tags = {
+    Environment = local.environment
+    Service     = "database"
+  }
+}
+
+# Generate random password for database
+resource "random_password" "master_password" {
+  count = local.create_resources
+
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+// todo create aurora security group
+
+# Security group for Aurora
+resource "aws_security_group" "aurora_sg" {
+  count = local.create_resources
+
+  name_prefix = "traba-${local.environment}-aurora-sg"
+  description = "Security group for Aurora PostgreSQL cluster"
+
+  # Add your VPC ID here
+  vpc_id = aws_vpc.main[count.index].id
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend[0].id]
+  }
+
+  tags = {
+    Environment = local.environment
+    Service     = "database"
+  }
+}
+
+# First, add a data source to fetch the existing secret
+# Get existing secret value if it exists
+# Read existing secret
+data "aws_secretsmanager_secret" "backend_config" {
+  count = local.create_resources
+  name  = "traba-${local.environment}-backend-config"  # Use name instead of secret_id
+}
+
+data "aws_secretsmanager_secret_version" "backend_config" {
+  count     = local.create_resources
+  secret_id = data.aws_secretsmanager_secret.backend_config[0].id
+}
+
+# Update existing secret with new values
+resource "aws_secretsmanager_secret_version" "backend_config" {
+  count     = local.create_resources
+  secret_id = data.aws_secretsmanager_secret.backend_config[0].id
+
+  secret_string = jsonencode(
+    merge(
+      jsondecode(data.aws_secretsmanager_secret_version.backend_config[0].secret_string),
+      {
+        CONN_STRING = "postgresql://${aws_rds_cluster.aurora_cluster[0].master_username}:${aws_rds_cluster.aurora_cluster[0].master_password}@${aws_rds_cluster.aurora_cluster[0].endpoint}:5432/${aws_rds_cluster.aurora_cluster[0].database_name}"
+      }
+    )
+  )
+
+  depends_on = [
+    aws_rds_cluster.aurora_cluster,
+    aws_rds_cluster_instance.aurora_instances
+  ]
+}
+
+# Output the endpoint for reference
 output "aurora_endpoint" {
-  value       = local.environment == "staging" || local.environment == "prod" ? aws_rds_cluster.aurora_cluster[0].endpoint : null
+  value       = local.create_resources > 0 ? aws_rds_cluster.aurora_cluster[0].endpoint : null
   description = "The endpoint of the Aurora cluster"
 }
 
-output "aurora_reader_endpoint" {
-  value       = local.environment == "staging" || local.environment == "prod" ? aws_rds_cluster.aurora_cluster[0].reader_endpoint : null
-  description = "The reader endpoint of the Aurora cluster"
-}

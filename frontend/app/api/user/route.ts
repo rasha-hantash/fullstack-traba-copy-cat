@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const token = await auth.getAccessToken();
-    console.log('apiUrl', config.apiUrl)
     const response = await fetch(`${config.apiUrl}/api/user`, {
       credentials: 'include',  // Add this line
       headers: {
