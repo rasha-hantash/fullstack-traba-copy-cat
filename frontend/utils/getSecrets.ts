@@ -1,4 +1,5 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+// import { fromEnv } from '@aws-sdk/credential-provider-node';
 
 export async function getAwsSecrets() {
   let environment = process.env.ENV

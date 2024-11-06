@@ -8,7 +8,6 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 let lastFetchTime = 0;
 
 export async function GET() {
-    console.log("here")
   // Check cache freshness
   if (secretsCache && (Date.now() - lastFetchTime) < CACHE_DURATION) {
     return NextResponse.json(secretsCache);
@@ -35,19 +34,13 @@ export async function GET() {
     process.env[key] = value as string;
     });
 
-    console.log('api: ', process.env.AUTH0_SECRET);
-
-    
     // Update cache
     secretsCache = secrets;
     lastFetchTime = Date.now();
-    // const secrets = JSON.parse(response.SecretString || '{}');
     
-    // Return all secrets in a structured way
-    return NextResponse.json({
-      secrets: secrets,  // This includes all your secrets
-      timestamp: Date.now()
-    });
+    return NextResponse.json(
+        { message: 'Yay' },
+        { status: 200 });
   } catch (error) {
     console.error('Error fetching secrets:', error);
     return NextResponse.json(

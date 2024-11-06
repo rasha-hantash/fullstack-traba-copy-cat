@@ -2,7 +2,7 @@ version: '3'
 vars:
   TAG:
     sh: echo "$(date +'%Y-%m-%d_%HH%MM')-$(git rev-parse --short HEAD)"
-  ENV: '{{.ENV | default "staging"}}'  # Add default ENV here
+  ENV: 'staging'  # Add default ENV here
 
 tasks:
   fetch-ecr-arn:
@@ -17,9 +17,9 @@ tasks:
       Logs into ECR for AWS
     vars:
       ECR_ARN:
-        sh: task fetch-ecr-arn | awk -F'"' '{print $4}'
+        sh: task fetch-ecr-arn
     cmds:
-      - aws ecr get-login-password --region us-east-1 #| docker login --username AWS --password-stdin {{ .ECR_ARN }}
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS  --password-stdin {{ .ECR_ARN }}
 
   frontend:docker:staging:
     desc: Build and push frontend image
@@ -29,14 +29,15 @@ tasks:
     cmds:
       - task: ecr:login
       - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.fe -t {{.ECR_ARN}}:frontend-{{.TAG}} .
-      # - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
+      - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
 
   backend:docker:staging:
     desc: Build and push backend image
     vars:
       ECR_ARN:
-        sh: task fetch-ecr-arn | awk -F'"' '{print $4}'
+        sh: task fetch-ecr-arn
     cmds:
+      - task: ecr:login
       - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.be -t {{.ECR_ARN}}:backend-{{.TAG}} .
       - docker push {{.ECR_ARN}}:backend-{{.TAG}}
 
