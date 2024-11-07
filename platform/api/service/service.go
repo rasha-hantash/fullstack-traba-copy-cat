@@ -98,8 +98,6 @@ func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 		return "", fmt.Errorf("error creating user: %w", err)
 	}
 
-	slog.Info("User created successfully", "user_id", userID)
-
 	err = s.initializeData(userID)
 	if err != nil {
 		return "", fmt.Errorf("error initializing data: %w", err)
@@ -204,10 +202,12 @@ func (s *service) initializeData(employerID string) error {
 
 	// Create a worker user
 	userID := generateID(UserPrefix)
+
+	workerEmail := fmt.Sprintf("john.doe+%s@example.com", ksuid.New().String())
 	_, err = tx.Exec(`
 		INSERT INTO users (id, first_name, last_name, email, phone_number, company_name, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, userID, "John", "Doe", "john.doe@example.com", "1234567890", "", userID)
+	`, userID, "John", "Doe", workerEmail, "1234567890", "", userID)
 	if err != nil {
 		return fmt.Errorf("failed to insert user: %w", err)
 	}

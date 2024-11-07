@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import EmailVerification from '@/components/EmailVerification';
 
-export default function VerifyEmailPage() {
-  const searchParams = useSearchParams()
-  const session_token  = searchParams.get('session_token')
+// Separate component to handle the search params and verification logic
+function VerificationContent() {
+  const searchParams = useSearchParams();
+  const session_token = searchParams.get('session_token');
   const [email, setEmail] = useState<string | null>(null);
   const [auth0UserId, setAuth0UserId] = useState<string | null>(null);
   const [identityAuth0UserId, setIdentityAuth0UserId] = useState<string | null>(null);
@@ -15,12 +17,12 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     const verifyToken = async () => {
       if (typeof session_token !== 'string') {
-        setError('No token provided'); // todo do i need these setError? 
+        setError('No token provided');
         return;
       }
 
       try {
-        const response = await fetch('http://localhost:3000/api/verify-token', {
+        const response = await fetch('/api/verify-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -38,7 +40,7 @@ export default function VerifyEmailPage() {
         setIdentityAuth0UserId(verified.identity.user_id);
         setProvider(verified.identity.provider);
       } catch (err) {
-        setError('Invalid or expired token');
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         setEmail(null);
       }
     };
@@ -46,19 +48,25 @@ export default function VerifyEmailPage() {
     verifyToken();
   }, [session_token]);
 
-  if (error) return <div>{error}</div>;
-
   if (error) {
     return <div>Error: {error}</div>;
   }
 
-
   return (
-      <EmailVerification 
-      email={ email || '' }
-      auth0UserId={ auth0UserId || '' }
-      identityAuth0UserId={ identityAuth0UserId || '' } 
-      provider={ provider || '' }
+    <EmailVerification 
+      email={email || ''}
+      auth0UserId={auth0UserId || ''}
+      identityAuth0UserId={identityAuth0UserId || ''} 
+      provider={provider || ''}
     />
+  );
+}
+
+// Main page component with proper Suspense boundary
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerificationContent />
+    </Suspense>
   );
 }

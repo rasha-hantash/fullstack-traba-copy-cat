@@ -18,8 +18,6 @@ const ThemeSwitcher = () => {
   const currentTheme = theme === 'system' ? systemTheme : theme;
 
   const toggleTheme = () => {
-    console.log("hello")
-    console.log(currentTheme)
     if (currentTheme === 'dark') {
       setTheme('light');
     } else {

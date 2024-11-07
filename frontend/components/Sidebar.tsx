@@ -8,6 +8,7 @@ import {
   UserCog,
   BriefcaseBusiness,
 } from "lucide-react";
+import Image from "next/image";
 
 const navigation = [
   { name: "Dashboard", href: "#", icon: LayoutGrid, current: true },
@@ -39,10 +40,12 @@ export default function Sidebar() {
         <>
             <nav>
             <div className="px-4 h-8 pt-1">
-              <img
+              <Image
                 alt="Your Company"
                 src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600"
                 className="h-8 w-auto"
+                width={32}
+                height={32}
               />
             </div>
             <ul role="list" className="mt-2 px-4">

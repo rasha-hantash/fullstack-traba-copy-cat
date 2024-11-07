@@ -1,29 +1,25 @@
 // app/api/user/route.ts
-import auth from '@/utils/auth';
-import { config } from '../config';
+// import auth from '@/utils/auth';
+import { config } from '../../config';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    // Get the search query from URL
-    const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get('search') || '';
-    console.log('apiUrl', config.apiUrl);
     
-    const token = await auth.getAccessToken()
+    const body = await request.json();
     // Construct the backend URL with search parameter
-    const backendUrl = new URL(`${config.apiUrl}/api/invoices`);
-    if (searchQuery) {
-      backendUrl.searchParams.set('search', searchQuery);
-    }
-
+    const backendUrl = new URL(`${config.apiUrl}/hook/user`);
     const response = await fetch(backendUrl.toString(), {
-      credentials: 'include',
+    method: 'POST', 
+    // credentials: 'include',
       headers: {
-        'Authorization': `Bearer ${token?.accessToken}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        user: body.user,
+        secret: body.secret, // Make sure this env var is set
+      }),
     });
     
 
@@ -32,7 +28,6 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-
     // Return the response with proper headers
     return new Response(JSON.stringify(data), {
       headers: {

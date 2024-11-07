@@ -1,37 +1,100 @@
 version: '3'
+vars:
+  TAG:
+    sh: echo "$(date +'%Y-%m-%d_%HH%MM')-$(git rev-parse --short HEAD)"
+  ENV: 'staging'  # Add default ENV here
+
 tasks:
-    migrate:create:
-        vars:
-            NAME: "{{.NAME}}"
-        cmds:
-          - migrate create -ext sql -dir platform/sql/migrations/ -seq {{.NAME}}
+  fetch-ecr-arn:
+    # internal: true
+    cmds:
+      - |
+        aws ecr describe-repositories --repository-names traba-{{.ENV}} --query 'repositories[0].repositoryUri' --output text
+    silent: true  # Optional: prevents the command from being printed
+  
+  ecr:login:
+    desc: |
+      Logs into ECR for AWS
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS  --password-stdin {{ .ECR_ARN }}
 
-    local:migrate:up:
-        cmds:
-          - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose up
+  frontend:docker:staging:
+    desc: Build and push frontend image
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      # - task: ecr:login
+      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.fe -t {{.ECR_ARN}}:frontend-{{.TAG}} .
+      - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
 
-    local:migrate:down:
-        cmds:
-          - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose down
+  backend:docker:staging:
+    desc: Build and push backend image
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      # - task: ecr:login
+      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.be -t {{.ECR_ARN}}:backend-{{.TAG}} .
+      - docker push {{.ECR_ARN}}:backend-{{.TAG}}
 
-    remote:migrate:up:
+  terraform:apply:staging:
+    desc: Apply terraform with specific image tags
+    dir: platform/infra
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      - terraform init
+      - terraform apply 
+        -var="ecr_repository_url={{.ECR_ARN}}" 
+        -var="frontend_image_tag=frontend-{{.TAG}}" 
+        -var="backend_image_tag=backend-{{.TAG}}"
+        -auto-approve
+
+  deploy:staging:
+    desc: Full deployment with specified tag
+    cmds:
+      # - task: ecr:login
+      - task: frontend:docker:staging
+      - task: backend:docker:staging
+      - task: terraform:apply:staging
+
+  migrate:create:
       vars:
-        CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+          NAME: "{{.NAME}}"
       cmds:
-        - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose up
+        - migrate create -ext sql -dir platform/sql/migrations/ -seq {{.NAME}}
 
-    remote:migrate:down:
-      vars:
-        CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+  local:migrate:up:
       cmds:
-        - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose down
+        - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose up
 
-    local:seed:db:
-      desc: Seed the database with a local SQL file
+  local:migrate:down:
       cmds:
-        - |
-          cat platform/sql/seed/seed-db.sql | docker exec -i -e PGPASSWORD=your_password fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
-    local:db:shell:
-      desc: Open a shell to the database
-      cmds:
-        - docker exec -it fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
+        - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose down
+
+  remote:migrate:up:
+    vars:
+      CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+    cmds:
+      - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose up
+
+  remote:migrate:down:
+    vars:
+      CONNECTION_STRING: "{{.CONNECTION_STRING}}"
+    cmds:
+      - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose down
+
+  local:seed:db:
+    desc: Seed the database with a local SQL file
+    cmds:
+      - |
+        cat platform/sql/seed/seed-db.sql | docker exec -i -e PGPASSWORD=your_password fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
+  local:db:shell:
+    desc: Open a shell to the database
+    cmds:
+      - docker exec -it fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
