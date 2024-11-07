@@ -34,6 +34,14 @@ locals {
   domain_name      = "fs0ciety.dev"
   frontend_domain  = "traba-${local.environment}.${local.domain_name}"
   backend_domain   = "api-traba-${local.environment}.${local.domain_name}"
+
+  allowed_environments = ["prod", "staging"]
+  
+  validate_environment = (
+    contains(local.allowed_environments, local.environment)
+    ? true 
+    : tobool("Environment '${local.environment}' is not allowed. Must be one of: ${join(", ", local.allowed_environments)}")
+  )
 }
 
 
@@ -1036,6 +1044,134 @@ resource "aws_security_group" "aurora_sg" {
     Environment = local.environment
     Service     = "database"
   }
+}
+
+# main.tf
+data "aws_ami" "amazon_linux_2" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+# Security group for bastion host
+resource "aws_security_group" "bastion" {
+  name_prefix = "bastion-${local.environment}-"
+  description = "Security group for bastion host"
+  vpc_id      = aws_vpc.main[0].id
+
+  ingress {
+    description = "SSH from allowed IPs"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] // todo make this my IP ?  var.allowed_cidr_blocks
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "bastion-${local.environment}"
+    Environment = local.environment
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Allow bastion to access Aurora
+resource "aws_security_group_rule" "aurora_from_bastion" {
+  type                     = "ingress"
+  from_port               = 5432
+  to_port                 = 5432
+  protocol                = "tcp"
+  source_security_group_id = aws_security_group.bastion.id
+  security_group_id       = aws_security_group.aurora_sg[0].id
+  description            = "Allow PostgreSQL access from bastion host"
+}
+
+# IAM role for bastion host
+resource "aws_iam_role" "bastion" {
+  name_prefix = "bastion-${local.environment}-"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# IAM instance profile for bastion
+resource "aws_iam_instance_profile" "bastion" {
+  name_prefix = "bastion-${local.environment}"
+  role        = aws_iam_role.bastion.name
+}
+
+# Allow SSM Session Manager access
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+
+# Bastion host
+resource "aws_instance" "bastion" {
+  ami                         = data.aws_ami.amazon_linux_2.id
+  instance_type              = "t3.micro"
+  subnet_id                  = aws_subnet.public[0].id
+  vpc_security_group_ids     = [aws_security_group.bastion.id]
+  key_name                   = "bastion-key-pair" // note the key pair was created by 'aws ec2 create-key-pair'  command
+  iam_instance_profile       = aws_iam_instance_profile.bastion.name
+  associate_public_ip_address = true
+
+  root_block_device {
+    volume_size = 8
+    encrypted   = true
+  }
+
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required" # IMDSv2
+  }
+
+  tags = {
+    Name        = "bastion-${local.environment}"
+    Environment = local.environment
+  }
+
+  # User data script to install useful tools
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install -y postgresql15
+              EOF
+}
+
+# outputs.tf
+output "bastion_public_ip" {
+  description = "Public IP of bastion host"
+  value       = aws_instance.bastion.public_ip
+}
+
+output "bastion_public_dns" {
+  description = "Public DNS of bastion host"
+  value       = aws_instance.bastion.public_dns
 }
 
 # First, add a data source to fetch the existing secret
