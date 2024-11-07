@@ -306,26 +306,36 @@ resource "aws_security_group" "backend_alb" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    self        = true  # Allows traffic from the ALB itself
+    self        = true # Allows traffic from the ALB itself
     description = "Allow health check traffic from ALB"
+    // todo add security group here? 
   }
 
-  # Rule for frontend service
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.frontend[count.index].id]
-  }
-
-  # Rule for Auth0 webhook
+  # Rule for frontend service and public access (for Auth0 webhooks)
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [for ip in var.auth0_us_ips : "${ip}/32"]
-    description = "Allow traffic from Auth0 webhooks"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS traffic from frontend and Auth0 webhooks"
   }
+
+  # Rule for frontend service
+  # ingress {
+  #   from_port       = 443
+  #   to_port         = 443
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.frontend[count.index].id]
+  # }
+
+  # # Rule for Auth0 webhook
+  # ingress {
+  #   from_port   = 443
+  #   to_port     = 443
+  #   protocol    = "tcp"
+  #   cidr_blocks = [for ip in var.auth0_us_ips : "${ip}/32"]
+  #   description = "Allow traffic from Auth0 webhooks"
+  # }
 
   egress {
     from_port   = 0

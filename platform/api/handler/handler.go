@@ -60,6 +60,7 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 
 func (h* Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
     // Get the user from the context
+    slog.Info("creating user")
     var reqBody CreateUserReq
     err := json.NewDecoder(r.Body).Decode(&reqBody)
     if err != nil {
