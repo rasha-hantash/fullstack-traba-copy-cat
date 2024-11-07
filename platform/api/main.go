@@ -5,6 +5,7 @@ import (
 	_ "github.com/lib/pq"
 	"log/slog"
 	// "time"
+	"encoding/json"
 	"context"
 	"fmt"
 	"net/http"
@@ -103,16 +104,9 @@ func main() {
 	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		// Optional: Check critical dependencies
-		// Example: Check database connection
-		if err := db.PingContext(r.Context()); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("unhealthy: database unreachable"))
-			return
-		}
-	
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("healthy"))
+		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 	})
 
 	slog.InfoContext(ctx, "starting server", "port", cfg.ServerPort)

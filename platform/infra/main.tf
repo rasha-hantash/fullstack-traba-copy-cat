@@ -301,6 +301,15 @@ resource "aws_security_group" "backend_alb" {
   name_prefix = "traba-${local.environment}-backend-alb-sg"
   vpc_id      = aws_vpc.main[count.index].id
 
+  # Rule for health checks
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    self        = true  # Allows traffic from the ALB itself
+    description = "Allow health check traffic from ALB"
+  }
+
   # Rule for frontend service
   ingress {
     from_port       = 443
@@ -350,6 +359,13 @@ resource "aws_security_group" "frontend" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  #   egress {
+  #   from_port       = 443
+  #   to_port         = 443
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.backend_alb[count.index].id]
+  # }
 
   tags = {
     Name        = "traba-${local.environment}-frontend-sg"
@@ -594,7 +610,7 @@ resource "aws_ecs_service" "frontend" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.private[count.index].id]
+    subnets          = aws_subnet.private[*].id
     security_groups  = [aws_security_group.frontend[count.index].id]
     assign_public_ip = false
   }
@@ -651,6 +667,24 @@ resource "aws_lb_target_group" "backend" {
 
   tags = {
     Environment = local.environment
+  }
+}
+
+resource "aws_lb_listener" "backend_http" {
+  count = local.create_resources
+
+  load_balancer_arn = aws_lb.backend[count.index].arn
+  port              = "3000"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
@@ -718,7 +752,7 @@ resource "aws_ecs_service" "backend" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [aws_subnet.private[count.index].id]
+    subnets          = aws_subnet.private[*].id
     security_groups  = [aws_security_group.backend[count.index].id]
     assign_public_ip = false
   }
