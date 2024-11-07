@@ -34,23 +34,7 @@ locals {
   domain_name      = "fs0ciety.dev"
   frontend_domain  = "traba-${local.environment}.${local.domain_name}"
   backend_domain   = "api-traba-${local.environment}.${local.domain_name}"
-
-  allowed_environments = ["prod", "staging"]
-  
-  validate_environment = (
-    contains(local.allowed_environments, local.environment)
-    ? true 
-    : tobool("Environment '${local.environment}' is not allowed. Must be one of: ${join(", ", local.allowed_environments)}")
-  )
 }
-
-
-variable "availability_zone" {
-  description = "Availability zone for resources"
-  type        = string
-  default     = "us-east-1a"
-}
-
 
 variable "frontend_image_tag" {
   description = "Tag for frontend container image"
@@ -91,55 +75,6 @@ variable "health_check_path_backend" {
   default     = "/health"
 }
 
-variable "auth0_us_ips" {
-  description = "Auth0 US region outbound IP addresses"
-  type        = list(string)
-  default = [
-    "174.129.105.183",
-    "18.116.79.126",
-    "18.117.64.128",
-    "18.191.46.63",
-    "18.218.26.94",
-    "18.232.225.224",
-    "18.233.90.226",
-    "3.131.238.180",
-    "3.131.55.63",
-    "3.132.201.78",
-    "3.133.18.220",
-    "3.134.176.17",
-    "3.19.44.88",
-    "3.20.244.231",
-    "3.21.254.195",
-    "3.211.189.167",
-    "34.211.191.214",
-    "34.233.19.82",
-    "34.233.190.223",
-    "35.160.3.103",
-    "35.162.47.8",
-    "35.166.202.113",
-    "35.167.74.121",
-    "35.171.156.124",
-    "35.82.131.220",
-    "44.205.93.104",
-    "44.218.235.21",
-    "44.219.52.110",
-    "52.12.243.90",
-    "52.2.61.131",
-    "52.204.128.250",
-    "52.206.34.127",
-    "52.43.255.209",
-    "52.88.192.232",
-    "52.89.116.72",
-    "54.145.227.59",
-    "54.157.101.160",
-    "54.200.12.78",
-    "54.209.32.202",
-    "54.245.16.146",
-    "54.68.157.8",
-    "54.69.107.228"
-  ]
-}
-
 # VPC and Network Configuration
 resource "aws_vpc" "main" {
   count = local.create_resources
@@ -169,7 +104,6 @@ resource "aws_subnet" "public" {
   availability_zone = data.aws_availability_zones.az_availables.names[count.index]
   vpc_id            = aws_vpc.main[0].id
   cidr_block        = cidrsubnet(aws_vpc.main[0].cidr_block, 7, count.index + 1) //"10.0.1.0/24"
-  # availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
   tags = {
@@ -183,7 +117,6 @@ resource "aws_subnet" "private" {
   availability_zone = data.aws_availability_zones.az_availables.names[count.index]
   vpc_id            = aws_vpc.main[0].id
   cidr_block        = cidrsubnet(aws_vpc.main[0].cidr_block, 7, count.index + 3) //"10.0.2.0/24"
-  # availability_zone = var.availability_zone
 
   tags = {
     Name        = "traba-${local.environment}-private"
@@ -328,23 +261,6 @@ resource "aws_security_group" "backend_alb" {
     description = "Allow HTTPS traffic from frontend and Auth0 webhooks"
   }
 
-  # Rule for frontend service
-  # ingress {
-  #   from_port       = 443
-  #   to_port         = 443
-  #   protocol        = "tcp"
-  #   security_groups = [aws_security_group.frontend[count.index].id]
-  # }
-
-  # # Rule for Auth0 webhook
-  # ingress {
-  #   from_port   = 443
-  #   to_port     = 443
-  #   protocol    = "tcp"
-  #   cidr_blocks = [for ip in var.auth0_us_ips : "${ip}/32"]
-  #   description = "Allow traffic from Auth0 webhooks"
-  # }
-
   egress {
     from_port   = 0
     to_port     = 0
@@ -377,13 +293,6 @@ resource "aws_security_group" "frontend" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  #   egress {
-  #   from_port       = 443
-  #   to_port         = 443
-  #   protocol        = "tcp"
-  #   security_groups = [aws_security_group.backend_alb[count.index].id]
-  # }
 
   tags = {
     Name        = "traba-${local.environment}-frontend-sg"
@@ -1015,13 +924,6 @@ resource "aws_security_group" "aurora_sg" {
 
   # Add your VPC ID here
   vpc_id = aws_vpc.main[count.index].id
-
-  # ingress {
-  #   from_port       = 5432
-  #   to_port         = 5432
-  #   protocol        = "tcp"
-  #   security_groups = [aws_security_group.backend[count.index].id]
-  # }
 
   # Add new rule for public access
   ingress {
