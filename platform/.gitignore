@@ -7,4 +7,6 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*% 
-infra/terraform.tfstate.d/
+terraform.tfstate.d/
+.terraform/
+.terraform.lock.hcl
