@@ -7,3 +7,4 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*% 
+infra/terraform.tfstate.d/
