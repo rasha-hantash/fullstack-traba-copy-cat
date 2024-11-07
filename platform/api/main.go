@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"log/slog"
-	"time"
+	// "time"
 	"context"
 	"fmt"
 	"net/http"
@@ -71,6 +71,7 @@ func main() {
 		slog.Error("failed to connect to db", "error", err)
 		os.Exit(1)
 	}
+	defer db.Close()
 
 	fmt.Println("Connected to database")
 
@@ -82,22 +83,6 @@ func main() {
 	// Middleware
 	// r.Use(middleware.Logger)
 	// r.Use(middleware.Recoverer)
-
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		// Optional: Check critical dependencies
-		// Example: Check database connection
-		if err := db.PingContext(r.Context()); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("unhealthy: database unreachable"))
-			return
-		}
-	
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("healthy"))
-	})
-
-	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
-
 	r.Use(cors.New(cors.Options{
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
@@ -115,6 +100,20 @@ func main() {
         r.Get("/api/invoices", h.HandleFetchInvoices)
         r.Get("/api/user", h.HandleGetUser)
     })
+	r.Post("/hook/user", h.HandleCreateUser) // New endpoint for getting/creating user
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		// Optional: Check critical dependencies
+		// Example: Check database connection
+		if err := db.PingContext(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("unhealthy: database unreachable"))
+			return
+		}
+	
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("healthy"))
+	})
 
 	slog.InfoContext(ctx, "starting server", "port", cfg.ServerPort)
 	// todo catch the error here
@@ -138,12 +137,22 @@ func NewDBClient(psqlConnStr string) (*sql.DB, error) {
 	// db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Verify the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
+	// if err = db.Ping(); err != nil {
+	// 	return nil, fmt.Errorf("failed to ping database: %w", err)
+	// }
+
+	// conn, err := sql.Open("postgres", psqlConnStr)
+	// if err != nil {
+		
+	// }
+	// err = conn.Ping()
+	// if err != nil {
+	// }
+	// slog.Info("postgres connection success")
+	// // return &Client{Conn: conn}
 
 	slog.Info("postgres connection success")
 	return db, nil

@@ -4,5 +4,6 @@ COPY frontend/ .
 RUN npm install
 ARG ENV=staging
 ENV ENV=$ENV
+ENV PORT=80
 RUN npm run build
 CMD [ "npm", "start" ]

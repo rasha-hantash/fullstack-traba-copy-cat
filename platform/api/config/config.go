@@ -25,10 +25,14 @@ type Config struct {
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "local"
-	}
+	// env := os.Getenv("ENV")
+	// if env == "" {
+	// 	env = "local"
+	// }
+
+	env := "staging"
+
+	fmt.Println("loading config for env:", env)
 
 	region := os.Getenv("AWS_REGION")
 	secretName := fmt.Sprintf("traba-%s-backend-config", env)
@@ -60,10 +64,14 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	}
 
 	var config Config
+
 	err = json.Unmarshal([]byte(secretString), &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret value: %v", err)
 	}
+
+	fmt.Println("loading config for env:",config.ServerPort)
+	fmt.Println("loading config for auth0:",config.Auth0BaseURL)
 
 	return &config, nil
 }

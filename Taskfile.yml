@@ -27,7 +27,7 @@ tasks:
       ECR_ARN:
         sh: task fetch-ecr-arn
     cmds:
-      - task: ecr:login
+      # - task: ecr:login
       - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.fe -t {{.ECR_ARN}}:frontend-{{.TAG}} .
       - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
 
@@ -37,16 +37,19 @@ tasks:
       ECR_ARN:
         sh: task fetch-ecr-arn
     cmds:
-      - task: ecr:login
+      # - task: ecr:login
       - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.be -t {{.ECR_ARN}}:backend-{{.TAG}} .
       - docker push {{.ECR_ARN}}:backend-{{.TAG}}
 
   terraform:apply:staging:
     desc: Apply terraform with specific image tags
-    dir: infra
+    dir: platform/infra
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
     cmds:
       - terraform init
-      - terraform apply -var-file=staging.tfvars 
+      - terraform apply
         -var="ecr_repository_url={{.ECR_ARN}}" 
         -var="frontend_image_tag=frontend-{{.TAG}}" 
         -var="backend_image_tag=backend-{{.TAG}}"
@@ -55,7 +58,7 @@ tasks:
   deploy:staging:
     desc: Full deployment with specified tag
     cmds:
-      - task: ecr:login
+      # - task: ecr:login
       - task: frontend:docker:staging
       - task: backend:docker:staging
       - task: terraform:apply:staging

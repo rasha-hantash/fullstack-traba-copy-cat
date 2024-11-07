@@ -22,6 +22,10 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+data "aws_availability_zones" "az_availables" {
+  state = "available"
+}
+
 
 
 locals {
@@ -70,7 +74,7 @@ variable "backend_container_port" {
 variable "health_check_path_frontend" {
   description = "Health check path for frontend traba service"
   type        = string
-  default     = "/api/health"
+  default     = "/" # todo do ${base_url}/api/health
 }
 
 variable "health_check_path_backend" {
@@ -142,12 +146,22 @@ resource "aws_vpc" "main" {
   }
 }
 
-resource "aws_subnet" "public" {
-  count = local.create_resources
 
-  vpc_id                  = aws_vpc.main[count.index].id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = var.availability_zone
+/*
+The cidrsubnet function takes:
+
+Parent CIDR block (VPC's CIDR)
+Number of additional bits to add to the prefix (8 gives us /24 subnets)
+The subnet number (we offset private subnets by 2 to avoid overlap)
+
+*/
+
+resource "aws_subnet" "public" {
+  count             = 2
+  availability_zone = data.aws_availability_zones.az_availables.names[count.index]
+  vpc_id            = aws_vpc.main[0].id
+  cidr_block        = cidrsubnet(aws_vpc.main[0].cidr_block, 7, count.index + 1) //"10.0.1.0/24"
+  # availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
   tags = {
@@ -157,11 +171,11 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count = local.create_resources
-
-  vpc_id            = aws_vpc.main[count.index].id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = var.availability_zone
+  count             = 2
+  availability_zone = data.aws_availability_zones.az_availables.names[count.index]
+  vpc_id            = aws_vpc.main[0].id
+  cidr_block        = cidrsubnet(aws_vpc.main[0].cidr_block, 7, count.index + 3) //"10.0.2.0/24"
+  # availability_zone = var.availability_zone
 
   tags = {
     Name        = "traba-${local.environment}-private"
@@ -234,17 +248,17 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "public" {
-  count = local.create_resources
+  count = 2
 
   subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public[count.index].id
+  route_table_id = aws_route_table.public[0].id
 }
 
 resource "aws_route_table_association" "private" {
-  count = local.create_resources
+  count = 2
 
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  route_table_id = aws_route_table.private[0].id
 }
 
 # Security Groups
@@ -424,7 +438,7 @@ resource "aws_lb" "frontend" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.frontend_alb[count.index].id]
-  subnets            = [aws_subnet.public[count.index].id]
+  subnets            = aws_subnet.public[*].id
 
   tags = {
     Name        = "traba-${local.environment}-frontend-alb"
@@ -445,8 +459,8 @@ resource "aws_lb_target_group" "frontend" {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
-    matcher             = "200"
-    path                = var.health_check_path_frontend
+    matcher             = "200,302,404" # Accept more status codes
+    path                = "/"           # Check root path var.health_pathcheck_frontend
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -491,9 +505,52 @@ resource "aws_lb_listener" "frontend_http" {
   }
 }
 
+# Task Role - for your application to access AWS services
+resource "aws_iam_role" "ecs_task_role" {
+  count = local.create_resources
+  name  = "traba-${local.environment}-ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+data "aws_caller_identity" "current" {}
+# Policy to allow access to Secrets Manager
+resource "aws_iam_role_policy" "ecs_task_secrets" {
+  count = local.create_resources
+  name  = "traba-${local.environment}-secrets-policy"
+  role  = aws_iam_role.ecs_task_role[count.index].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          "arn:aws:secretsmanager:us-east-1:${data.aws_caller_identity.current.account_id}:secret:traba-${local.environment}-*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_ecs_task_definition" "frontend" {
   count = local.create_resources
 
+  task_role_arn            = aws_iam_role.ecs_task_role[count.index].arn # Add this line
   family                   = "traba-${local.environment}-frontend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -563,7 +620,7 @@ resource "aws_lb" "backend" {
   internal           = true
   load_balancer_type = "application"
   security_groups    = [aws_security_group.backend_alb[count.index].id]
-  subnets            = [aws_subnet.public[count.index].id]
+  subnets            = aws_subnet.public[*].id
 
   tags = {
     Name        = "traba-${local.environment}-backend-alb"
@@ -617,6 +674,7 @@ resource "aws_lb_listener" "backend_https" {
 resource "aws_ecs_task_definition" "backend" {
   count = local.create_resources
 
+  task_role_arn            = aws_iam_role.ecs_task_role[count.index].arn # Add this line
   family                   = "traba-${local.environment}-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -830,6 +888,17 @@ output "backend_security_group_id" {
   description = "ID of the backend security group"
 }
 
+resource "aws_db_subnet_group" "aurora" {
+  count       = local.create_resources
+  name        = "traba-${local.environment}-aurora"
+  description = "Subnet group for Aurora cluster"
+  subnet_ids  = aws_subnet.private[*].id # Use all private subnets
+
+  tags = {
+    Environment = local.environment
+  }
+}
+
 
 resource "aws_rds_cluster" "aurora_cluster" {
   count              = local.create_resources
@@ -848,20 +917,23 @@ resource "aws_rds_cluster" "aurora_cluster" {
   # preferred_backup_window = "07:00-09:00"
   # deletion_protection    = local.environment == "prod" ? true : false  # Protect prod from accidental deletion
 
+  # Add these lines to put Aurora in the correct VPC
+  db_subnet_group_name   = aws_db_subnet_group.aurora[0].name
   vpc_security_group_ids = [aws_security_group.aurora_sg[0].id]
-  depends_on = [ random_password.master_password ]
+
+  depends_on = [random_password.master_password]
 }
 
 
 # Create Aurora instance(s)
 resource "aws_rds_cluster_instance" "aurora_instances" {
-  count = local.environment == "staging" || local.environment == "prod" ? (local.environment == "prod" ? 2 : 1) : 0
+  count = local.create_resources
 
   identifier         = "traba-${local.environment}-aurora-${count.index + 1}"
-  cluster_identifier = aws_rds_cluster.aurora_cluster[0].id
-  instance_class     = local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
-  engine             = aws_rds_cluster.aurora_cluster[0].engine
-  engine_version     = aws_rds_cluster.aurora_cluster[0].engine_version
+  cluster_identifier = aws_rds_cluster.aurora_cluster[count.index].id
+  instance_class     = "db.t4g.medium" //local.environment == "prod" ? "db.r6g.large" : "db.r6g.medium"
+  engine             = aws_rds_cluster.aurora_cluster[count.index].engine
+  engine_version     = aws_rds_cluster.aurora_cluster[count.index].engine_version
 
   tags = {
     Environment = local.environment
@@ -890,11 +962,28 @@ resource "aws_security_group" "aurora_sg" {
   # Add your VPC ID here
   vpc_id = aws_vpc.main[count.index].id
 
+  # ingress {
+  #   from_port       = 5432
+  #   to_port         = 5432
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.backend[count.index].id]
+  # }
+
+  # Add new rule for public access
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend[0].id]
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Allow from anywhere
+    description = "Allow PostgreSQL access from anywhere"
+  }
+
+  # Add egress rule (recommended)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
@@ -908,7 +997,7 @@ resource "aws_security_group" "aurora_sg" {
 # Read existing secret
 data "aws_secretsmanager_secret" "backend_config" {
   count = local.create_resources
-  name  = "traba-${local.environment}-backend-config"  # Use name instead of secret_id
+  name  = "traba-${local.environment}-backend-config" # Use name instead of secret_id
 }
 
 data "aws_secretsmanager_secret_version" "backend_config" {
