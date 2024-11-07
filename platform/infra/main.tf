@@ -990,8 +990,10 @@ resource "random_password" "master_password" {
   count = local.create_resources
 
   length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  special = false
+  upper = true
+  lower = true
+  numeric = true
 }
 
 // todo create aurora security group

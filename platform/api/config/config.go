@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"os"
 )
 
 type Config struct {
@@ -34,7 +33,7 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 
 	fmt.Println("loading config for env:", env)
 
-	region := os.Getenv("AWS_REGION")
+	region := "us-east-1"
 	secretName := fmt.Sprintf("traba-%s-backend-config", env)
 
 	sess, err := session.NewSession(&aws.Config{

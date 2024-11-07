@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"log/slog"
+	// "net/url"
 	// "time"
 	"encoding/json"
 	"context"
@@ -67,6 +68,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	slog.Info("loaded config", "config", cfg.DBConnString)
 	db, err := NewDBClient(cfg.DBConnString)
 	if err != nil {
 		slog.Error("failed to connect to db", "error", err)
@@ -120,6 +122,22 @@ func main() {
 
 // NewDBClient creates a new database client
 func NewDBClient(psqlConnStr string) (*sql.DB, error) {
+	// u, err := url.Parse(psqlConnStr)
+    // if err != nil {
+    //     return nil, fmt.Errorf("invalid connection string: %w", err)
+    // }
+    
+    // // Rebuild it with proper escaping
+    // password, _ := u.User.Password()
+	// slog.Info("password", "password", password)
+    // username := u.User.Username()
+    // connStr := fmt.Sprintf(
+    //     "postgresql://%s:%s@%s%s",
+    //     username,
+    //     url.QueryEscape(password),
+    //     u.Host,
+    //     u.Path,
+    // )
 	db, err := sql.Open("postgres", psqlConnStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -134,19 +152,9 @@ func NewDBClient(psqlConnStr string) (*sql.DB, error) {
 	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	// defer cancel()
 
-	// if err = db.Ping(); err != nil {
-	// 	return nil, fmt.Errorf("failed to ping database: %w", err)
-	// }
-
-	// conn, err := sql.Open("postgres", psqlConnStr)
-	// if err != nil {
-		
-	// }
-	// err = conn.Ping()
-	// if err != nil {
-	// }
-	// slog.Info("postgres connection success")
-	// // return &Client{Conn: conn}
+	if err = db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
 
 	slog.Info("postgres connection success")
 	return db, nil
