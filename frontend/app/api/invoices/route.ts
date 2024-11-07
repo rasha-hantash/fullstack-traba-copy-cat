@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     // Get the search query from URL
     const { searchParams } = new URL(request.url);
     const searchQuery = searchParams.get('search') || '';
+    console.log('apiUrl', config.apiUrl);
     
     const token = await auth.getAccessToken()
     // Construct the backend URL with search parameter
