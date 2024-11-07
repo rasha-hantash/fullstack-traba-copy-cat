@@ -1,21 +1,21 @@
 package logger
 
 import (
-    "context"
-    "log/slog"
-    "fmt"
-    "google.golang.org/grpc"
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"log/slog"
 )
 
 type ctxKey string
 
 const (
-    slogFields ctxKey = "slog_fields"
+	slogFields ctxKey = "slog_fields"
 )
 
 type ContextHandler struct {
-    slog.Handler
+	slog.Handler
 }
 
 func ContextPropagationUnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -23,20 +23,20 @@ func ContextPropagationUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		// Get the metadata from the incoming context
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
-		  return nil, fmt.Errorf("couldn't parse incoming context metadata")
+			return nil, fmt.Errorf("couldn't parse incoming context metadata")
 		}
 
 		for k, v := range md {
-            if len(v) > 1 {
-                ctx = AppendCtx(ctx, slog.Any(k, v))
-            } else {
-                ctx = AppendCtx(ctx, slog.String(k, v[0]))
-            }
-			
+			if len(v) > 1 {
+				ctx = AppendCtx(ctx, slog.Any(k, v))
+			} else {
+				ctx = AppendCtx(ctx, slog.String(k, v[0]))
+			}
+
 		}
 		slog.InfoContext(ctx, "gRPC request")
 		return handler(ctx, req)
-	  }
+	}
 }
 
 // Handle adds contextual attributes to the Record before calling the underlying
@@ -54,16 +54,16 @@ func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 // AppendCtx adds an slog attribute to the provided context so that it will be
 // included in any Record created with such context
 func AppendCtx(parent context.Context, attr ...slog.Attr) context.Context {
-    if parent == nil {
-        parent = context.Background()
-    }
+	if parent == nil {
+		parent = context.Background()
+	}
 
-    var newAttrs []slog.Attr
-    if v, ok := parent.Value(slogFields).([]slog.Attr); ok {
-        newAttrs = append(v, attr...)
-    } else {
-        newAttrs = append([]slog.Attr{}, attr...)
-    }
+	var newAttrs []slog.Attr
+	if v, ok := parent.Value(slogFields).([]slog.Attr); ok {
+		newAttrs = append(v, attr...)
+	} else {
+		newAttrs = append([]slog.Attr{}, attr...)
+	}
 
-    return context.WithValue(parent, slogFields, newAttrs)
+	return context.WithValue(parent, slogFields, newAttrs)
 }

@@ -63,7 +63,7 @@ type InvoiceResponse struct {
 	EndDate       time.Time `json:"end_date" db:"end_date"`
 	InvoiceAmount float64   `json:"invoice_amount" db:"invoice_amount"`
 	Status        string    `json:"status" db:"status"`
-	InvoiceName  string    `json:"invoice_name" db:"invoice_name"`
+	InvoiceName   string    `json:"invoice_name" db:"invoice_name"`
 }
 
 func NewService(db *sql.DB) Service {
@@ -98,7 +98,7 @@ func (s *service) CreateUser(ctx context.Context, user *User) (string, error) {
 		return "", fmt.Errorf("error creating user: %w", err)
 	}
 
-	err = s.initializeData(userID)
+	err = s.initializeData(ctx, userID)
 	if err != nil {
 		return "", fmt.Errorf("error initializing data: %w", err)
 	}
@@ -134,7 +134,7 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 	var query string
 	var args []interface{}
 	var invoices []InvoiceResponse
-	
+
 	// Base query
 	query = `
 		SELECT 
@@ -147,15 +147,15 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 		FROM invoices i
 		JOIN shifts s ON i.shift_id = s.id
 		WHERE i.created_by = $1
-		AND s.created_by = $1`  // Removed the semicolon here
+		AND s.created_by = $1` // Removed the semicolon here
 	args = append(args, userId)
-	
+
 	// If search term is provided, add it to the query
 	if searchTerm != "" {
-		query +=  ` AND invoice_name ILIKE $2`
+		query += ` AND invoice_name ILIKE $2`
 		args = append(args, "%"+searchTerm+"%")
 	}
-	
+
 	// Add the semicolon at the very end if needed
 	query += `;`
 
@@ -192,7 +192,7 @@ func (s *service) FetchInvoices(ctx context.Context, userId string, searchTerm s
 	return invoices, nil
 }
 
-func (s *service) initializeData(employerID string) error {
+func (s *service) initializeData(ctx context.Context, employerID string) error {
 	// Start a transaction
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -233,7 +233,7 @@ func (s *service) initializeData(employerID string) error {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	slog.Info("Data initialization completed successfully")
+	slog.InfoContext(ctx, "Data initialization completed successfully")
 	return nil
 }
 

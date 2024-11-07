@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -24,14 +27,11 @@ type Config struct {
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
-	// env := os.Getenv("ENV")
-	// if env == "" {
-	// 	env = "local"
-	// }
-
-	env := "staging"
-
-	fmt.Println("loading config for env:", env)
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "local"
+	}
+	slog.InfoContext(ctx, "loading config", "env", env)
 
 	region := "us-east-1"
 	secretName := fmt.Sprintf("traba-%s-backend-config", env)
@@ -39,7 +39,7 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS session: %v", err)
 	}
@@ -68,9 +68,6 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret value: %v", err)
 	}
-
-	fmt.Println("loading config for env:",config.ServerPort)
-	fmt.Println("loading config for auth0:",config.Auth0BaseURL)
 
 	return &config, nil
 }

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -31,8 +32,7 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 }
 
 // EnsureValidToken is a middleware that will check the validity of our JWT.
-func EnsureValidToken(cfg *config.Config) func(next http.Handler) http.Handler {
-	log.Println("ensuring valid token")
+func EnsureValidToken(ctx context.Context, cfg *config.Config) func(next http.Handler) http.Handler {
 	issuerURL, err := url.Parse(cfg.Auth0IssuerBaseURL)
 	if err != nil {
 		log.Fatalf("Failed to parse the issuer url: %v", err)
@@ -58,7 +58,7 @@ func EnsureValidToken(cfg *config.Config) func(next http.Handler) http.Handler {
 	}
 
 	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
-		log.Printf("Encountered error while validating JWT: %v", err)
+		slog.ErrorContext(ctx, "Encountered error while validating JWT", "error", err)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
