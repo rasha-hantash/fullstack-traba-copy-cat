@@ -1,0 +1,33 @@
+name: Staging Deploy Claims
+run-name: ${{ github.actor }} is deploying to ClaimClam Platform Staging  🚀
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - platform/api/** # listen for changes made in platform
+jobs:
+  Test-API:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.0'
+      - name: Run Service Unit Tests
+        working-directory: service
+        run: |
+          echo "⛑ Running Tests ⛑"
+          go test ./...
+  Deploy-Claims:
+    needs: [Test-API]
+    uses: ./.github/workflows/__task_staging.yml
+    with:
+      TaskCommand: deploy:be:staging
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
