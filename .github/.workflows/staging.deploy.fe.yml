@@ -7,8 +7,8 @@ on:
     paths:
       - frontend/** 
 jobs:
-  Deploy-Claims:
-    # uses: ./.github/workflows/__task_staging.yml
+  Deploy-FE:
+    uses: ./.github/workflows/__task_staging.yml
     with:
       TaskCommand: deploy:fe:staging
     secrets:
