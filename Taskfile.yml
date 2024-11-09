@@ -79,7 +79,7 @@ tasks:
       - terraform init
       - terraform apply -var-file=staging.tfvars
         -var="ecr_repository_url={{.ECR_ARN}}" 
-        -var="frontend_image_tag=backend-{{.TAG}}" 
+        -var="backend_image_tag=backend-{{.TAG}}" 
         -auto-approve
 
   deploy:fe:staging:
