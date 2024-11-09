@@ -64,8 +64,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.InfoContext(ctx, "testing actions")
-
 	slog.InfoContext(ctx, "loaded config", "config", cfg.DBConnString)
 	db, err := NewDBClient(cfg.DBConnString)
 	if err != nil {

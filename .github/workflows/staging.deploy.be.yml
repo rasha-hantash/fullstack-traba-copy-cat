@@ -28,4 +28,6 @@ jobs:
     uses: ./.github/workflows/__task_staging.yml
     with:
       TaskCommand: deploy:be:staging
-    secrets: inherit
+    secrets: # Add this section
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
