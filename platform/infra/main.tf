@@ -128,6 +128,7 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
+
 # environments/staging/main.tf
 module "networking" {
   source = "./modules/networking"
@@ -187,10 +188,11 @@ module "bastion" {
 
   environment   = "staging"
   vpc_id        = module.networking.vpc_id
+  vpc_security_group_ids = [module.security.bastion_sg_id]
   subnet_id     = module.networking.public_subnet_ids[0]
   allowed_cidrs = ["0.0.0.0/0"] # Replace with your IP
   instance_type = "t3.micro"
-  key_name      = "bastion-key-pair"
+  key_name      = "bastion-key-pair-2"
 }
 
 
@@ -237,19 +239,31 @@ module "backend" {
   ]
 }
 
-
-module "certificates" {
-  source = "./modules/dns"
-
-  environment          = var.environment
-  domain_name          = local.domain_name
-  frontend_domain      = local.frontend_domain
-  backend_domain       = local.backend_domain
-  frontend_lb_dns_name = module.frontend.alb_dns_name
-  frontend_lb_zone_id  = module.frontend.alb_zone_id
-  backend_lb_dns_name  = module.backend.alb_dns_name
-  backend_lb_zone_id   = module.backend.alb_zone_id
+data "aws_secretsmanager_secret" "backend_config" {
+  name  = "traba-${var.environment}-backend-config" # Use name instead of secret_id
 }
+
+data "aws_secretsmanager_secret_version" "backend_config" {
+  secret_id = data.aws_secretsmanager_secret.backend_config.id
+}
+
+resource "aws_secretsmanager_secret_version" "backend_config" {
+  secret_id = data.aws_secretsmanager_secret.backend_config.id
+
+  secret_string = jsonencode(
+    merge(
+      jsondecode(data.aws_secretsmanager_secret_version.backend_config.secret_string),
+      {
+        CONN_STRING = "postgresql://${module.database.master_username}:${module.database.master_password}@${module.database.cluster_endpoint}:5432/${module.database.database_name}"
+      }
+    )
+  )
+
+  depends_on = [
+    module.database
+  ]
+}
+
 
 output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name

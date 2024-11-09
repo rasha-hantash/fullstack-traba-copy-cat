@@ -111,24 +111,24 @@ resource "aws_route53_record" "backend" {
   }
 }
 
-# CloudWatch Log Groups
-resource "aws_cloudwatch_log_group" "frontend" {
-  name              = "/ecs/traba-${var.environment}-frontend"
-  retention_in_days = 30
+# # CloudWatch Log Groups
+# resource "aws_cloudwatch_log_group" "frontend" {
+#   name              = "/ecs/traba-${var.environment}-frontend"
+#   retention_in_days = 30
 
-  tags = {
-    Environment = var.environment
-  }
-}
+#   tags = {
+#     Environment = var.environment
+#   }
+# }
 
-resource "aws_cloudwatch_log_group" "backend" {
-  name              = "/ecs/traba-${var.environment}-backend"
-  retention_in_days = 30
+# resource "aws_cloudwatch_log_group" "backend" {
+#   name              = "/ecs/traba-${var.environment}-backend"
+#   retention_in_days = 30
 
-  tags = {
-    Environment = var.environment
-  }
-}
+#   tags = {
+#     Environment = var.environment
+#   }
+# }
 
 # Outputs
 output "certificate_arn" {
@@ -139,14 +139,4 @@ output "certificate_arn" {
 output "domain_validation_options" {
   description = "Domain validation options for the certificate"
   value       = aws_acm_certificate.main.domain_validation_options 
-}
-
-output "frontend_log_group_name" {
-  description = "Name of the frontend CloudWatch log group"
-  value       =  aws_cloudwatch_log_group.frontend.name
-}
-
-output "backend_log_group_name" {
-  description = "Name of the backend CloudWatch log group"
-  value       =  aws_cloudwatch_log_group.backend.name 
 }

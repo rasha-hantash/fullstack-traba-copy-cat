@@ -144,6 +144,11 @@ output "master_username" {
   value       = aws_rds_cluster.aurora_cluster.master_username
 }
 
+output "master_password" {
+  description = "The master username"
+  value       = aws_rds_cluster.aurora_cluster.master_password
+}
+
 output "connection_secret_arn" {
   description = "ARN of the secret containing the connection string"
   value       = aws_secretsmanager_secret.db_config.arn

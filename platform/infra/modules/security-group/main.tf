@@ -77,7 +77,7 @@ resource "aws_security_group" "backend_alb" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] // Need to be open to all IP for the webhook
+    cidr_blocks = ["0.0.0.0/0"] // Need to be open to all IP for the webhook // todo only make available to FE 
     description = "Allow HTTPS traffic from frontend and Auth0 webhooks"
   }
 
@@ -155,6 +155,14 @@ resource "aws_security_group" "aurora" {
     protocol        = "tcp"
     security_groups = [aws_security_group.backend.id]
     description     = "Allow PostgreSQL access from backend service"
+  }
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]  # or your bastion security group ID
+    description     = "Allow PostgreSQL access from bastion host"
   }
 
   egress {

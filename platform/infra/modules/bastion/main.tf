@@ -29,7 +29,12 @@ variable "instance_type" {
 variable "key_name" {
   description = "Name of the SSH key pair"
   type        = string
-  default     = "bastion-key-pair"
+  default     = "bastion-key-pair-2"
+}
+
+variable  "vpc_security_group_ids" {
+  description = "List of security group IDs for the bastion host"
+  type        = list(string)
 }
 
 # modules/bastion/main.tf
@@ -43,35 +48,35 @@ data "aws_ami" "amazon_linux_2" {
   }
 }
 
-resource "aws_security_group" "bastion" {
-  name_prefix = "bastion-${var.environment}-"
-  description = "Security group for bastion host"
-  vpc_id      = var.vpc_id
+# resource "aws_security_group" "bastion" {
+#   name_prefix = "bastion-${var.environment}-"
+#   description = "Security group for bastion host"
+#   vpc_id      = var.vpc_id
 
-  ingress {
-    description = "SSH from allowed IPs"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
-  }
+#   ingress {
+#     description = "SSH from allowed IPs"
+#     from_port   = 22
+#     to_port     = 22
+#     protocol    = "tcp"
+#     cidr_blocks = var.allowed_cidrs
+#   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  tags = {
-    Name        = "bastion-${var.environment}"
-    Environment = var.environment
-  }
+#   tags = {
+#     Name        = "bastion-${var.environment}"
+#     Environment = var.environment
+#   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
 resource "aws_iam_role" "bastion" {
   name_prefix = "bastion-${var.environment}-"
@@ -110,7 +115,7 @@ resource "aws_instance" "bastion" {
   subnet_id     = var.subnet_id
   key_name      = var.key_name
 
-  vpc_security_group_ids      = [aws_security_group.bastion.id]
+  vpc_security_group_ids = var.vpc_security_group_ids  # Use the variable here
   iam_instance_profile        = aws_iam_instance_profile.bastion.name
   associate_public_ip_address = true
 
@@ -145,11 +150,6 @@ output "bastion_public_ip" {
 output "bastion_public_dns" {
   description = "Public DNS of bastion host"
   value       = aws_instance.bastion.public_dns
-}
-
-output "bastion_security_group_id" {
-  description = "ID of the bastion security group"
-  value       = aws_security_group.bastion.id
 }
 
 output "instance_id" {

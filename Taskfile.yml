@@ -49,7 +49,7 @@ tasks:
         sh: task fetch-ecr-arn
     cmds:
       - terraform init
-      - terraform apply 
+      - terraform apply -var-file=staging.tfvars
         -var="ecr_repository_url={{.ECR_ARN}}" 
         -var="frontend_image_tag=frontend-{{.TAG}}" 
         -var="backend_image_tag=backend-{{.TAG}}"
@@ -78,7 +78,7 @@ tasks:
         - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose down
 
   # note: first you need to creat an ssh tunnel to the remote database -> ssh -i ~/.ssh/bastion-key-pair.pem -fN -v -L 5438:<aurora-cluster-endpoint>:5432 ec2-user@<dns name of the bastion host>
-  # ex: task remote:migrate:up CONNECTION_STRING="postgresql://admin:password@localhost:5438/traba?sslmode=disable"
+  # ex: task remote:migrate:up CONNECTION_STRING="postgresql://traba_admin:<your-password>@localhost:5438/traba?sslmode=disable"
   remote:migrate:up:
     vars:
       CONNECTION_STRING: "{{.CONNECTION_STRING}}"
