@@ -19,7 +19,7 @@ jobs:
         with:
           go-version: '1.21.0'
       - name: Run Service Unit Tests
-        working-directory: service
+        working-directory: platform/api/service
         run: |
           echo "⛑ Running Tests ⛑"
           go test ./...
