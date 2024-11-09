@@ -1,0 +1,29 @@
+name: Pull Request Backend
+run-name: ${{ github.actor }} is submitting pull request for Backend Service 🧪
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - platform/api/** # listen for changes made in platform
+jobs:
+   Test-Backend:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.0'
+      - name: Install Golang Migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate.linux-amd64 /usr/local/bin/migrate
+      - name: Run Tests
+        working-directory: platform/api
+        run: |
+          echo "⛑ Running Tests ⛑"
+          go test ./...

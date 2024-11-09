@@ -7,8 +7,6 @@ terraform {
   }
 }
 
-// todo: create s3 bucket to store terraform state file 
-
 locals {
   environment = terraform.workspace
 }
@@ -61,6 +59,14 @@ aws_route53_zone.main: Still creating... [20s elapsed]
 aws_route53_zone.main: Still creating... [30s elapsed]
 aws_route53_zone.main: Creation complete after 40s [id=BLAHBLAHBLAH]
  */
+
+
+module "terraform_state" {
+  source = "../modules/terraform-state"
+
+  state_bucket_name   = "traba-terraform-states"
+  dynamodb_table_name = "terraform-state-locks"
+}
 
 output "route53_zone_id" {
   value       = aws_route53_zone.main.zone_id

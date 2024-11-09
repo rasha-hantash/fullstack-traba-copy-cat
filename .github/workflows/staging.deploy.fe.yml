@@ -1,0 +1,14 @@
+name: Staging Deploy Claims
+run-name: ${{ github.actor }} is deploying to ClaimClam Platform Staging  🚀
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend/** 
+jobs:
+  Deploy-FE:
+    uses: ./.github/workflows/__task_staging.yml
+    with:
+      TaskCommand: deploy:fe:staging
+    secrets: inherit
