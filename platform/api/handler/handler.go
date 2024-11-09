@@ -110,7 +110,7 @@ func (h *Handler) HandleFetchInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 	searchTerm := r.URL.Query().Get("search")
 
-	invoices, err := h.svc.FetchInvoices(r.Context(), customClaims.DBUserId, searchTerm)
+	invoices, err := h.svc.FetchInvoices(ctx, customClaims.DBUserId, searchTerm)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to fetch invoices", "error", err)
 		http.Error(w, "failed to fetch invoices", http.StatusInternalServerError)
