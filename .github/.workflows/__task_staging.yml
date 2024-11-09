@@ -6,16 +6,9 @@ on:
       TaskCommand:
         required: true
         type: string
-    secrets:
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      VARS:
-        required: false
+
 jobs:
   Run-Task:
-    environment: staging
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,4 +32,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           task ecr:login
-          task ${{ inputs.TaskCommand }} ${{ secrets.VARS }}
+          task ${{ inputs.TaskCommand }}

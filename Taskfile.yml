@@ -55,10 +55,48 @@ tasks:
         -var="backend_image_tag=backend-{{.TAG}}"
         -auto-approve
 
+
+  terraform:apply:fe:staging:
+    desc: Apply terraform with specific image tags
+    dir: platform/infra
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      - terraform init
+      - terraform apply -var-file=staging.tfvars
+        -var="ecr_repository_url={{.ECR_ARN}}" 
+        -var="frontend_image_tag=frontend-{{.TAG}}" 
+        -auto-approve
+
+  terraform:apply:be:staging:
+    desc: Apply terraform with specific image tags
+    dir: platform/infra
+    vars:
+      ECR_ARN:
+        sh: task fetch-ecr-arn
+    cmds:
+      - terraform init
+      - terraform apply -var-file=staging.tfvars
+        -var="ecr_repository_url={{.ECR_ARN}}" 
+        -var="frontend_image_tag=backend-{{.TAG}}" 
+        -auto-approve
+
+  deploy:fe:staging:
+    desc: Full deployment with specified tag
+    cmds:
+      - task: frontend:docker:staging
+      - task: terraform:apply:fe:staging
+
+  deploy:be:staging:
+    desc: Full deployment with specified tag
+    cmds:
+      - task: backend:docker:staging
+      - task: terraform:apply:be:staging
+
   deploy:staging:
     desc: Full deployment with specified tag
     cmds:
-      # - task: ecr:login
       - task: frontend:docker:staging
       - task: backend:docker:staging
       - task: terraform:apply:staging
