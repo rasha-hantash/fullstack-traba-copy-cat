@@ -1,4 +1,4 @@
-name: Staging Deploy Claims
+name: Staging Deploy Frontend
 run-name: ${{ github.actor }} is deploying to ClaimClam Platform Staging  🚀
 on:
   push:
