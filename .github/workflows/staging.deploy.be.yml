@@ -1,4 +1,4 @@
-name: Staging Deploy Claims
+name: Staging Deploy Backend
 run-name: ${{ github.actor }} is deploying to ClaimClam Platform Staging  🚀
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "⛑ Running Tests ⛑"
           go test ./...
-  Deploy-Claims:
+  Deploy-Backend:
     needs: [Test-API]
     uses: ./.github/workflows/__task_staging.yml
     with:
