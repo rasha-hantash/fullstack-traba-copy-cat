@@ -86,7 +86,7 @@ func main() {
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
 		AllowedOrigins: []string{
-			"*", // todo remove this
+			// "*", // todo remove this
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
 			"https://traba-staging.fs0ciety.dev",
