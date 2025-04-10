@@ -3,7 +3,6 @@ package test
 import (
 	"context"
 	"database/sql"
-	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -21,7 +20,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupAndFillDatabaseContainer(seedDataFile string) (*sql.DB, testcontainers.Container) {
+func SetupDatabaseContainer() (*sql.DB, testcontainers.Container) {
 	// Start a Docker container running PostgreSQL
 	ctx := context.Background()
 	dbName := "postgres"
@@ -47,6 +46,9 @@ func SetupAndFillDatabaseContainer(seedDataFile string) (*sql.DB, testcontainers
 	}
 
 	db, err := postgres.NewDBClient(connString)
+	if err != nil {
+		log.Fatal(err)
+	}
 	driver, err := pg.WithInstance(db, &pg.Config{})
 	if err != nil {
 		log.Fatal(err)
@@ -69,19 +71,6 @@ func SetupAndFillDatabaseContainer(seedDataFile string) (*sql.DB, testcontainers
 	err = m.Up()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if seedDataFile != "" {
-		seedDir := filepath.Join(dir, "../../../sql/container_setup/"+seedDataFile)
-		script, err := os.ReadFile(seedDir)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		_, err = db.Exec(string(script))
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	return db, pgContainer
