@@ -210,15 +210,16 @@ resource "aws_security_group" "bastion" {
 }
 
 # Allow bastion to access Aurora
-# resource "aws_security_group_rule" "aurora_from_bastion" {
-#   type                     = "ingress"
-#   from_port                = 5432
-#   to_port                  = 5432
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.bastion.id
-#   security_group_id        = aws_security_group.aurora.id
-#   description             = "Allow PostgreSQL access from bastion host"
-# }
+
+resource "aws_security_group_rule" "aurora_from_bastion" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion.id
+  security_group_id        = aws_security_group.aurora.id
+  description             = "Allow PostgreSQL access from bastion host"
+}
 
 # modules/security/outputs.tf
 output "frontend_alb_sg_id" {
