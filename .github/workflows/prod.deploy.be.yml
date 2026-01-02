@@ -1,0 +1,35 @@
+name: Prod Deploy Backend
+run-name: ${{ github.actor }} is deploying Backend to Prod 🚀
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - platform/api/**
+      - platform/infra-pulumi/**
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.0'
+          cache: true
+      - name: Run Tests
+        working-directory: platform/api
+        run: go test ./...
+
+  deploy-backend:
+    needs: [test-backend]
+    uses: ./.github/workflows/_reusable_task.yml
+    with:
+      task_command: deploy:pulumi:be
+      project: fs0ciety
+      env: prod
+      aws_region: us-east-1
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

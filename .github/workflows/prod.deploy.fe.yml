@@ -1,0 +1,23 @@
+name: Prod Deploy Frontend
+run-name: ${{ github.actor }} is deploying Frontend to Prod 🚀
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/**
+      - docker/Dockerfile.fe
+      - platform/infra-pulumi/**
+
+jobs:
+  deploy-frontend:
+    uses: ./.github/workflows/_reusable_task.yml
+    with:
+      task_command: deploy:pulumi:fe
+      project: fs0ciety
+      env: prod
+      aws_region: us-east-1
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

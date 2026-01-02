@@ -58,3 +58,7 @@ Public subnet only for load balancers
 Restricted security group access
 HTTPS enforcement with automatic HTTP to HTTPS redirect
 ```
+
+task deploy:pulumi PROJECT=fs0ciety ENV=prod
+
+be aware the the terraform CI/CD are inthe .github/workflows-archived. if you want ot use them in CI then you have to move those file back into githubworkflows 

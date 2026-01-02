@@ -1,0 +1,68 @@
+name: Run Task (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      task_command:
+        required: true
+        type: string
+      project:
+        required: false
+        type: string
+      env:
+        required: false
+        type: string
+      aws_region:
+        required: false
+        type: string
+        default: us-east-1
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      PULUMI_ACCESS_TOKEN:
+        required: true
+
+jobs:
+  run-task:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.21.0]
+        node-version: [20]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Pulumi CLI
+        uses: pulumi/actions@v6
+        with:
+          pulumi-version: latest
+
+      - name: Run Task Command
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+        run: |
+          task ${{ inputs.task_command }} \
+            PROJECT=${{ inputs.project }} \
+            ENV=${{ inputs.env }} \
+            AWS_REGION=${{ inputs.aws_region }}

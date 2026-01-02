@@ -1,0 +1,3 @@
+name: fs0ciety-services
+runtime: go
+description: ECS services layer (task defs + services) that deploys frequently

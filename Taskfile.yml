@@ -1,122 +1,208 @@
-version: '3'
+version: "3"
+
 vars:
+  # required-ish inputs (you can override per-command)
+  PROJECT: '{{ default "fs0ciety" .PROJECT }}'
+  ENV: '{{ .ENV }}'
+  AWS_REGION: '{{ default "us-east-1" .AWS_REGION }}'
+
+  # example: 2026-01-02_13H05M-ab12cd3
   TAG:
     sh: echo "$(date +'%Y-%m-%d_%HH%MM')-$(git rev-parse --short HEAD)"
-  ENV: 'staging'  # Add default ENV here
+
+  # repo name convention in ECR (change if you prefer)
+  ECR_REPO_NAME: "{{.PROJECT}}-{{.ENV}}"
+
+  # pulumi: org/project/stack
+  PULUMI_STACK: '{{ default (printf "rasha-hantash-org/%s-services/%s" .PROJECT .ENV) .PULUMI_STACK }}'
+  # where your pulumi program lives
+  PULUMI_DIR: '{{ default "platform/infra-pulumi/services" .PULUMI_DIR }}'
+
+  # terraform dir (if you still want TF option)
+  TF_DIR: '{{ default "platform/infra" .TF_DIR }}'
+  TF_VARS_FILE: '{{ default (printf "%s.tfvars" .ENV) .TF_VARS_FILE }}'
 
 tasks:
-  fetch-ecr-arn:
-    # internal: true
+  # ---------- helpers ----------
+  fetch-ecr-uri:
+    desc: "Fetch ECR repositoryUri for PROJECT-ENV"
     cmds:
       - |
-        aws ecr describe-repositories --repository-names traba-{{.ENV}} --query 'repositories[0].repositoryUri' --output text
-    silent: true  # Optional: prevents the command from being printed
-  
+        aws ecr describe-repositories \
+          --region {{.AWS_REGION}} \
+          --repository-names {{.ECR_REPO_NAME}} \
+          --query 'repositories[0].repositoryUri' \
+          --output text
+    silent: true
+
   ecr:login:
-    desc: |
-      Logs into ECR for AWS
+    desc: "Login to ECR"
     vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
     cmds:
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS  --password-stdin {{ .ECR_ARN }}
+      - aws ecr get-login-password --region {{.AWS_REGION}} | docker login --username AWS --password-stdin {{.ECR_URI}}
 
-  frontend:docker:staging:
-    desc: Build and push frontend image
-    vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
+  # optional: create repo if missing (nice for fresh envs)
+  ecr:ensure:
+    desc: "Create ECR repo if it doesn't exist (idempotent-ish)"
     cmds:
-      # - task: ecr:login
-      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.fe -t {{.ECR_ARN}}:frontend-{{.TAG}} .
-      - docker push {{.ECR_ARN}}:frontend-{{.TAG}}
+      - |
+        aws ecr describe-repositories \
+          --region {{.AWS_REGION}} \
+          --repository-names {{.ECR_REPO_NAME}} \
+          >/dev/null 2>&1 \
+        || aws ecr create-repository \
+          --region {{.AWS_REGION}} \
+          --repository-name {{.ECR_REPO_NAME}} \
+          --image-scanning-configuration scanOnPush=true \
+          >/dev/null
+    silent: true
 
-  backend:docker:staging:
-    desc: Build and push backend image
+  # ---------- docker build/push ----------
+  frontend:docker:
+    desc: "Build + push frontend image"
     vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
     cmds:
-      # - task: ecr:login
-      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.be -t {{.ECR_ARN}}:backend-{{.TAG}} .
-      - docker push {{.ECR_ARN}}:backend-{{.TAG}}
+      - task: ecr:ensure
+      - task: ecr:login
+      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.fe -t {{.ECR_URI}}:frontend-{{.TAG}} .
+      - docker push {{.ECR_URI}}:frontend-{{.TAG}}
 
-  terraform:apply:staging:
-    desc: Apply terraform with specific image tags
-    dir: platform/infra
+  backend:docker:
+    desc: "Build + push backend image"
     vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
+    cmds:
+      - task: ecr:ensure
+      - task: ecr:login
+      - docker build --build-arg ENV={{.ENV}} -f docker/Dockerfile.be -t {{.ECR_URI}}:backend-{{.TAG}} .
+      - docker push {{.ECR_URI}}:backend-{{.TAG}}
+
+  # ---------- pulumi deploy ----------
+  pulumi:preview:
+    desc: "Pulumi preview (no deploy) using a synthetic image tag (ECR can be empty)"
+    dir: "{{.PULUMI_DIR}}"
+    vars:
+      # still fine if the repo doesn't exist yet; if it doesn't exist, set ECR_URI manually or ensure base created it
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
+
+      # create the same style tag you use elsewhere
+      PREVIEW_TAG: "preview-{{.TAG}}"
+
+      FRONTEND_IMAGE: "{{.ECR_URI}}:frontend-{{.PREVIEW_TAG}}"
+      BACKEND_IMAGE: "{{.ECR_URI}}:backend-{{.PREVIEW_TAG}}"
+    cmds:
+      - pulumi stack select {{.PULUMI_STACK}}
+      - pulumi config set awsRegion {{.AWS_REGION}}
+      - pulumi config set baseStack "rasha-hantash-org/fs0cietybase/{{.ENV}}"
+      - pulumi config set frontendImage {{.FRONTEND_IMAGE}}
+      - pulumi config set backendImage {{.BACKEND_IMAGE}}
+      - pulumi preview
+
+  pulumi:up:
+    desc: "Pulumi up using freshly built image tags"
+    dir: "{{.PULUMI_DIR}}"
+    vars:
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
+      FRONTEND_IMAGE: "{{.ECR_URI}}:frontend-{{.TAG}}"
+      BACKEND_IMAGE: "{{.ECR_URI}}:backend-{{.TAG}}"
+    cmds:
+      # select stack (assumes it already exists; add `pulumi stack init` if you want)
+      - pulumi stack select {{.PULUMI_STACK}}
+      # set ephemeral config (these keys should match what your pulumi code reads)
+      - pulumi config set awsRegion {{.AWS_REGION}}
+      - pulumi config set frontendImage {{.FRONTEND_IMAGE}}
+      - pulumi config set backendImage {{.BACKEND_IMAGE}}
+      - pulumi up --yes
+
+  pulumi:up:fe:
+    desc: "Pulumi up frontend only (still runs full pulumi program, but only image changes on FE tag)"
+    dir: "{{.PULUMI_DIR}}"
+    vars:
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
+      FRONTEND_IMAGE: "{{.ECR_URI}}:frontend-{{.TAG}}"
+    cmds:
+      - pulumi stack select {{.PULUMI_STACK}}
+      - pulumi config set awsRegion {{.AWS_REGION}}
+      - pulumi config set frontendImage {{.FRONTEND_IMAGE}}
+      - pulumi up --yes
+
+  pulumi:up:be:
+    desc: "Pulumi up backend only"
+    dir: "{{.PULUMI_DIR}}"
+    vars:
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
+      BACKEND_IMAGE: "{{.ECR_URI}}:backend-{{.TAG}}"
+    cmds:
+      - pulumi stack select {{.PULUMI_STACK}}
+      - pulumi config set awsRegion {{.AWS_REGION}}
+      - pulumi config set backendImage {{.BACKEND_IMAGE}}
+      - pulumi up --yes
+
+  deploy:pulumi:
+    desc: "Build FE+BE and deploy via Pulumi"
+    cmds:
+      - task: frontend:docker
+      - task: backend:docker
+      - task: pulumi:up
+
+  deploy:pulumi:fe:
+    desc: "Build FE and deploy via Pulumi"
+    cmds:
+      - task: frontend:docker
+      - task: pulumi:up:fe
+
+  deploy:pulumi:be:
+    desc: "Build BE and deploy via Pulumi"
+    cmds:
+      - task: backend:docker
+      - task: pulumi:up:be
+
+  # ---------- terraform deploy (optional legacy path) ----------
+  terraform:apply:
+    desc: "Terraform apply with specific image tags"
+    dir: "{{.TF_DIR}}"
+    vars:
+      ECR_URI:
+        sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
     cmds:
       - terraform init
-      - terraform apply -var-file=staging.tfvars
-        -var="ecr_repository_url={{.ECR_ARN}}" 
-        -var="frontend_image_tag=frontend-{{.TAG}}" 
-        -var="backend_image_tag=backend-{{.TAG}}"
-        -auto-approve
+      - terraform apply -var-file={{.TF_VARS_FILE}} \
+          -var="ecr_repository_url={{.ECR_URI}}" \
+          -var="frontend_image_tag=frontend-{{.TAG}}" \
+          -var="backend_image_tag=backend-{{.TAG}}" \
+          -auto-approve
 
-
-  terraform:apply:fe:staging:
-    desc: Apply terraform with specific image tags
-    dir: platform/infra
-    vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
+  deploy:terraform:
+    desc: "Build FE+BE and deploy via Terraform"
     cmds:
-      - terraform init
-      - terraform apply -var-file=staging.tfvars
-        -var="ecr_repository_url={{.ECR_ARN}}" 
-        -var="frontend_image_tag=frontend-{{.TAG}}" 
-        -auto-approve
+      - task: frontend:docker
+      - task: backend:docker
+      - task: terraform:apply
 
-  terraform:apply:be:staging:
-    desc: Apply terraform with specific image tags
-    dir: platform/infra
-    vars:
-      ECR_ARN:
-        sh: task fetch-ecr-arn
-    cmds:
-      - terraform init
-      - terraform apply -var-file=staging.tfvars
-        -var="ecr_repository_url={{.ECR_ARN}}" 
-        -var="backend_image_tag=backend-{{.TAG}}" 
-        -auto-approve
-
-  deploy:fe:staging:
-    desc: Full deployment with specified tag
-    cmds:
-      - task: frontend:docker:staging
-      - task: terraform:apply:fe:staging
-
-  deploy:be:staging:
-    desc: Full deployment with specified tag
-    cmds:
-      - task: backend:docker:staging
-      - task: terraform:apply:be:staging
-
-  deploy:staging:
-    desc: Full deployment with specified tag
-    cmds:
-      - task: frontend:docker:staging
-      - task: backend:docker:staging
-      - task: terraform:apply:staging
-
+  # ---------- db/migrations (kept from your original) ----------
   migrate:create:
-      vars:
-          NAME: "{{.NAME}}"
-      cmds:
-        - migrate create -ext sql -dir platform/sql/migrations/ -seq {{.NAME}}
+    vars:
+      NAME: "{{.NAME}}"
+    cmds:
+      - migrate create -ext sql -dir platform/sql/migrations/ -seq {{.NAME}}
 
   local:migrate:up:
-      cmds:
-        - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose up
+    cmds:
+      - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/{{.PROJECT}}?sslmode=disable" -verbose up
 
   local:migrate:down:
-      cmds:
-        - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/traba?sslmode=disable" -verbose down
+    cmds:
+      - migrate -path platform/sql/migrations/ -database "postgresql://admin:your_password@localhost:5438/{{.PROJECT}}?sslmode=disable" -verbose down
 
-  # note: first you need to creat an ssh tunnel to the remote database -> ssh -i ~/.ssh/bastion-key-pair.pem -fN -v -L 5438:<aurora-cluster-endpoint>:5432 ec2-user@<dns name of the bastion host>
-  # ex: task remote:migrate:up CONNECTION_STRING="postgresql://traba_admin:<your-password>@localhost:5438/traba?sslmode=disable"
   remote:migrate:up:
     vars:
       CONNECTION_STRING: "{{.CONNECTION_STRING}}"
@@ -128,13 +214,3 @@ tasks:
       CONNECTION_STRING: "{{.CONNECTION_STRING}}"
     cmds:
       - migrate -path platform/sql/migrations/ -database "{{.CONNECTION_STRING}}" -verbose down
-
-  local:seed:db:
-    desc: Seed the database with a local SQL file
-    cmds:
-      - |
-        cat platform/sql/seed/seed-db.sql | docker exec -i -e PGPASSWORD=your_password fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
-  local:db:shell:
-    desc: Open a shell to the database
-    cmds:
-      - docker exec -it fullstack-traba-copy-cat-postgres-1 psql -U admin -d traba
