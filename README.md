@@ -62,3 +62,21 @@ HTTPS enforcement with automatic HTTP to HTTPS redirect
 task deploy:pulumi PROJECT=fs0ciety ENV=prod
 
 be aware the the terraform CI/CD are inthe .github/workflows-archived. if you want ot use them in CI then you have to move those file back into githubworkflows 
+
+
+To start locally: 
+open up 3 terminals 
+
+docker build 
+npm run dev 
+go run main.go 
+
+ngrok 8080 (this is for the webhook)
+
+
+before running task deploy:pulumi you have to make sure to set at least 1 value in in prod secrets manager 
+
+
+
+for ssm tunneling into db run: brew install session-manager-plugin
+

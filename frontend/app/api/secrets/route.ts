@@ -15,16 +15,16 @@ export async function GET() {
 
   const client = new SecretsManagerClient({ 
     region: process.env.AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-    }
+    // credentials: {
+    //   accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    //   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+    // }
   });
 
   try {
     const response = await client.send(
       new GetSecretValueCommand({
-        SecretId: `traba-${process.env.ENV}-frontend-config`,
+        SecretId: `fs0ciety-${process.env.ENV}-core-config`,
       })
     );
 

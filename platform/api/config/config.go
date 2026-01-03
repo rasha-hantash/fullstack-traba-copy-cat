@@ -13,7 +13,7 @@ import (
 )
 
 type Config struct {
-	ServerPort         string `json:"PORT"`
+	ServerPort         string `json:"BACKEND_PORT"`
 	DBConnString       string `json:"CONN_STRING"`
 	Auth0Secret        string `json:"AUTH0_SECRET"`
 	Auth0Domain        string `json:"AUTH0_DOMAIN"`
@@ -31,10 +31,12 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	if env == "" {
 		env = "local"
 	}
+
 	slog.InfoContext(ctx, "loading config", "env", env)
 
 	region := "us-east-1"
-	secretName := fmt.Sprintf("traba-%s-backend-config", env)
+	// secretName := fmt.Sprintf("%s-%s-core-config", projectName, env)
+	secretName := fmt.Sprintf("fs0ciety-%s-core-config", env)
 
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
