@@ -1,0 +1,3 @@
+name: fs0cietybase
+runtime: go
+description: Base (slow-changing) AWS foundation:VPC,ALB,ACM,RDS,Secrets Manager,ECS cluster

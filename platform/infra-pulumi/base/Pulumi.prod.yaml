@@ -1,0 +1,18 @@
+config:
+  aws:region: us-east-1
+
+  projectName: fs0ciety
+  environment: prod
+  vpcCidr: 10.0.0.0/16
+  hostedZoneName: fs0ciety.dev
+
+  # If you keep config.go as flat keys:
+  postgres:
+    dbName: fs0ciety
+    dbUser: fs0ciety_admin
+    databaseInstanceType: db.t3.small
+    databaseBackupRetentionDays: 7
+    databaseMultiAz: false
+
+  # (optional) for cert behavior you mentioned
+  includeWildcardCert: true
