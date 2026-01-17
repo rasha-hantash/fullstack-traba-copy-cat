@@ -1,0 +1,31 @@
+name: Pull Request Backend
+run-name: ${{ github.actor }} PR Backend Tests 🧪
+
+on:
+  pull_request:
+    # branches: [main] commented this out in order to ensure tests run for stacked prs , not just prs against main 
+    paths:
+      - platform/api/**
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.0'
+          cache: true
+
+      # Only keep this if your tests actually require migrate binary:
+      # - name: Install Golang Migrate
+      #   run: |
+      #     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz
+      #     sudo mv migrate.linux-amd64 /usr/local/bin/migrate
+
+      - name: Run Tests
+        working-directory: platform/api
+        run: |
+          go test ./...

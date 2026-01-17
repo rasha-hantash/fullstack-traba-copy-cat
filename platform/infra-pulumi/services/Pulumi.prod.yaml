@@ -1,0 +1,5 @@
+config:
+  fs0ciety-services:awsRegion: us-east-1
+  fs0ciety-services:baseStack: rasha-hantash-org/fs0cietybase/prod
+  fs0ciety-services:frontendImage: 891377123668.dkr.ecr.us-east-1.amazonaws.com/fs0ciety-prod:frontend-preview-2026-01-03_21H55M-81bf2b8
+  fs0ciety-services:backendImage: 891377123668.dkr.ecr.us-east-1.amazonaws.com/fs0ciety-prod:backend-preview-2026-01-03_21H55M-81bf2b8
