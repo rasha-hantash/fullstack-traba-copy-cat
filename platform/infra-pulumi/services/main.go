@@ -25,6 +25,9 @@ type baseOutputs struct {
 	// Target groups created in base ALB module
 	frontendTargetGroupArn pulumi.StringOutput
 	backendTargetGroupArn  pulumi.StringOutput
+
+	// ECR repository URL
+	ecrRepoUrl pulumi.StringOutput
 }
 
 func main() {
@@ -43,11 +46,15 @@ func main() {
 		}
 		base := loadBaseOutputs(baseRef)
 
+		// ecrRepoUrl := baseRef.GetOutput(pulumi.String("ecrRepoUrl"))
+
+
+
 		// ✅ These should match what your Taskfile sets:
 		// pulumi config set frontendImage <full_ecr_uri:tag>
 		// pulumi config set backendImage <full_ecr_uri:tag>
-		frontendImage := cfg.Require("frontendImage")
-		backendImage := cfg.Require("backendImage")
+		frontendImage := pulumi.Sprintf("%s:%s", base.ecrRepoUrl, cfg.Require("frontendImageTag"))
+		backendImage := pulumi.Sprintf("%s:%s", base.ecrRepoUrl, cfg.Require("backendImageTag"))
 
 		// Log groups
 		feLogs, err := cloudwatch.NewLogGroup(ctx, "frontend-logs", &cloudwatch.LogGroupArgs{
@@ -195,8 +202,8 @@ func main() {
 		}
 
 		// Helpful exports
-		ctx.Export("frontendImage", pulumi.String(frontendImage))
-		ctx.Export("backendImage", pulumi.String(backendImage))
+		ctx.Export("frontendImage", frontendImage)
+		ctx.Export("backendImage", backendImage)
 		ctx.Export("frontendServiceName", feSvc.Name)
 		ctx.Export("backendServiceName", beSvc.Name)
 
@@ -214,6 +221,7 @@ func loadBaseOutputs(ref *pulumi.StackReference) baseOutputs {
 		backendSgId:            requireString(ref, "backendSgId"),
 		frontendTargetGroupArn: requireString(ref, "frontendTargetGroupArn"),
 		backendTargetGroupArn:  requireString(ref, "backendTargetGroupArn"),
+		ecrRepoUrl:            requireString(ref, "ecrRepoUrl"),
 	}
 }
 

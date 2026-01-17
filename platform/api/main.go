@@ -19,39 +19,6 @@ import (
 	"github.com/rs/cors"
 )
 
-type Auth0Config struct {
-	Auth0Secret        string `env:"AUTH0_SECRET"`
-	Auth0Domain        string `env:"AUTH0_DOMAIN"`
-	Auth0BaseURL       string `env:"AUTH0_BASE_URL"`
-	Auth0IssuerBaseURL string `env:"AUTH0_ISSUER_BASE_URL"`
-	Auth0ClientID      string `env:"AUTH0_CLIENT_ID"`
-	Auth0ClientSecret  string `env:"AUTH0_CLIENT_SECRET"`
-	Auth0RoleID        string `env:"AUTH0_ROLE_ID"`
-	Auth0Audience      string `env:"AUTH0_AUDIENCE"`
-	Auth0HookSecret    string `env:"AUTH_HOOK_SECRET"`
-}
-
-type DatabaseConfig struct {
-	// todo update the connection string to be localhost, postgres, or whatever the host name is supposed to be
-	ConnString string `env:"CONN_STRING"`
-}
-
-// type Auth
-
-type Config struct {
-	ServerPort         string `json:"PORT"`
-	DBConnString       string `json:"CONN_STRING"`
-	Auth0Secret        string `json:"AUTH0_SECRET"`
-	Auth0Domain        string `json:"AUTH0_DOMAIN"`
-	Auth0BaseURL       string `json:"AUTH0_BASE_URL"`
-	Auth0IssuerBaseURL string `json:"AUTH0_ISSUER_BASE_URL"`
-	Auth0ClientID      string `json:"AUTH0_CLIENT_ID"`
-	Auth0ClientSecret  string `json:"AUTH0_CLIENT_SECRET"`
-	Auth0RoleID        string `json:"AUTH0_ROLE_ID"`
-	Auth0Audience      string `json:"AUTH0_AUDIENCE"`
-	Auth0HookSecret    string `json:"AUTH_HOOK_SECRET"`
-}
-
 // todo add logger later on
 func main() {
 	ctx := context.Background()
@@ -86,11 +53,9 @@ func main() {
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-TOKEN"},
 		AllowedOrigins: []string{
-			// "*", // todo remove this
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
-			"https://traba-staging.fs0ciety.dev",
-			// "https://app.getclaimclam.com",
+			"https://app.fs0ciety.dev",
 		},
 		// Debug: true,
 	}).Handler)
@@ -133,6 +98,7 @@ func NewDBClient(psqlConnStr string) (*sql.DB, error) {
 	//     u.Host,
 	//     u.Path,
 	// )
+	slog.Info("psqlConnStr", "psqlConnStr", psqlConnStr)
 	db, err := sql.Open("postgres", psqlConnStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

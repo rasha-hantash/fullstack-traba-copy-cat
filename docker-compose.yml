@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=your_password
-      - POSTGRES_DB=traba
+      - POSTGRES_DB=fs0ciety
     ports:
       - '5438:5432'
     volumes:

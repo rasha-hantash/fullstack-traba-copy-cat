@@ -25,7 +25,7 @@ func main() {
 			VpcCidr:      cfg.VpcCidr,
 			PublicCount:  2,
 			PrivateCount: 2,
-			NewBits:      7, // matches your old terraform cidrsubnet(newbits=7)
+			NewBits:      7, // matches terraform's cidrsubnet(newbits=7)
 		})
 		if err != nil {
 			return err

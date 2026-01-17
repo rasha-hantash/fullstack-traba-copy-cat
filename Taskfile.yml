@@ -5,6 +5,8 @@ vars:
   PROJECT: '{{ default "fs0ciety" .PROJECT }}'
   ENV: '{{ .ENV }}'
   AWS_REGION: '{{ default "us-east-1" .AWS_REGION }}'
+  PULUMI_BASE_STACK: '{{ default (printf "rasha-hantash-org/%sbase/%s" .PROJECT .ENV) .PULUMI_BASE_STACK }}'
+  PULUMI_BASE_DIR: '{{ default "platform/infra-pulumi/base" .PULUMI_BASE_DIR }}'
 
   # example: 2026-01-02_13H05M-ab12cd3
   TAG:
@@ -94,14 +96,14 @@ tasks:
       # create the same style tag you use elsewhere
       PREVIEW_TAG: "preview-{{.TAG}}"
 
-      FRONTEND_IMAGE: "{{.ECR_URI}}:frontend-{{.PREVIEW_TAG}}"
-      BACKEND_IMAGE: "{{.ECR_URI}}:backend-{{.PREVIEW_TAG}}"
+      FRONTEND_IMAGE_TAG: "frontend-{{.PREVIEW_TAG}}"
+      BACKEND_IMAGE_TAG: "backend-{{.PREVIEW_TAG}}"
     cmds:
       - pulumi stack select {{.PULUMI_STACK}}
       - pulumi config set awsRegion {{.AWS_REGION}}
       - pulumi config set baseStack "rasha-hantash-org/fs0cietybase/{{.ENV}}"
-      - pulumi config set frontendImage {{.FRONTEND_IMAGE}}
-      - pulumi config set backendImage {{.BACKEND_IMAGE}}
+      - pulumi config set frontendImageTag {{.FRONTEND_IMAGE_TAG }}
+      - pulumi config set backendImageTag {{.BACKEND_IMAGE_TAG }}
       - pulumi preview
 
   pulumi:up:
@@ -110,15 +112,15 @@ tasks:
     vars:
       ECR_URI:
         sh: task fetch-ecr-uri PROJECT={{.PROJECT}} ENV={{.ENV}} AWS_REGION={{.AWS_REGION}}
-      FRONTEND_IMAGE: "{{.ECR_URI}}:frontend-{{.TAG}}"
-      BACKEND_IMAGE: "{{.ECR_URI}}:backend-{{.TAG}}"
+      FRONTEND_IMAGE_TAG: "frontend-{{.TAG}}"
+      BACKEND_IMAGE_TAG: "backend-{{.TAG}}"
     cmds:
       # select stack (assumes it already exists; add `pulumi stack init` if you want)
       - pulumi stack select {{.PULUMI_STACK}}
       # set ephemeral config (these keys should match what your pulumi code reads)
       - pulumi config set awsRegion {{.AWS_REGION}}
-      - pulumi config set frontendImage {{.FRONTEND_IMAGE}}
-      - pulumi config set backendImage {{.BACKEND_IMAGE}}
+      - pulumi config set frontendImageTag {{.FRONTEND_IMAGE_TAG}}
+      - pulumi config set backendImageTag {{.BACKEND_IMAGE_TAG}}
       - pulumi up --yes
 
   pulumi:up:fe:
@@ -165,6 +167,45 @@ tasks:
     cmds:
       - task: backend:docker
       - task: pulumi:up:be
+
+  
+  local:ssm:tunnel:db:
+    desc: "Open SSM port-forward tunnel to private RDS via the SSM db-access instance (keep running)"
+    # dir: "{{.PULUMI_BASE_DIR}}"
+    vars:
+      LOCAL_PORT: "5439"
+      DB_PORT: "5432"
+
+      INSTANCE_ID:
+        sh: pulumi -C platform/infra-pulumi/base stack output ssmDbAccessInstanceId --stack prod
+      DB_ENDPOINT:
+        sh: pulumi -C platform/infra-pulumi/base stack output dbEndpoint --stack prod
+    cmds:
+      - |
+        aws ssm start-session \
+          --region {{.AWS_REGION}} \
+          --target {{.INSTANCE_ID}} \
+          --document-name AWS-StartPortForwardingSessionToRemoteHost \
+          --parameters "host={{.DB_ENDPOINT}},portNumber={{.DB_PORT}},localPortNumber={{.LOCAL_PORT}}"
+
+
+
+  local:ssm:migrate:up:
+    desc: "Run DB migrations against localhost tunnel (requires local:ssm:tunnel:db running)"
+    vars:
+      LOCAL_PORT: "5439"
+      DB_NAME: "fs0ciety" # or make it configurable
+      DB_USER: "fs0ciety_admin"
+      DB_PASS_ENC: "{{.DB_PASS_ENC}}"
+    requires:
+      vars: [PROJECT, ENV, AWS_REGION, DB_PASS_ENC]
+    cmds:
+      - |
+        migrate -path platform/sql/migrations/ \
+          -database "postgres://{{.DB_USER}}:{{.DB_PASS_ENC}}@localhost:{{.LOCAL_PORT}}/{{.DB_NAME}}?sslmode=require" \
+          -verbose up
+
+
 
   # ---------- terraform deploy (optional legacy path) ----------
   terraform:apply:
